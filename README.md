@@ -1,11 +1,14 @@
-# Simulation
-Simulation du détumbling et de la prise d'attitude du satellite
-## Lancement
+# AOCS Simulator
+Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
+
+## Install
+Requires `python3` and `python3-pip` and obviously `make`
+```bash
+make install
 ```
-python3 main.py
+
+## Launch
+Before launching, you can change simulation parameters in `src/config.py`
+```bash
+make run
 ```
-## Edition des paramètres de simulation
-Lancer une première fois la simulation, un fichier `conf.py` sera créé.
-Éditer ce fichier par la suite pour changer les paramètres de simu
-### Retour aux paramètres par défaut
-Il suffit de supprimer `conf.py` et de relancer la simu

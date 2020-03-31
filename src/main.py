@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.append(os.path.join(*['..']*2))
-import shutil
 import vpython as vp
 from math import *
 import numpy as np
@@ -16,8 +15,7 @@ from scao.quaternion import Quaternion
 ###############################
 # Paramètres de la simulation #
 ###############################
-if (not os.path.isfile('conf.py')):
-    shutil.copy2('conf.default.py', 'conf.py')
+
 from conf import *
 
 ###################################
