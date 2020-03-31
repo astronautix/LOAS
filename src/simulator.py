@@ -1,5 +1,5 @@
 import numpy as np
-from scao.quaternion import Quaternion
+from quaternion import Quaternion
 
 class Simulator:
 
