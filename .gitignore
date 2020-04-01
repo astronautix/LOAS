@@ -1,3 +1,4 @@
 *.pyc
 __pycache__/
 conf.py
+pi3d_demos/
