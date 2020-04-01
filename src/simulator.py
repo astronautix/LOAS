@@ -34,4 +34,4 @@ class Simulator:
         Qnump /= np.linalg.norm(Qnump)
         self.Q = Quaternion(*Qnump[:,0])
         self.t += self.dt
-        return W
+        return self.Q

@@ -1,5 +1,5 @@
 import numpy as np
-from math import acos, sqrt
+from math import acos, sqrt, atan2, asin
 
 class Quaternion:
     """ The quaternion class
@@ -90,3 +90,7 @@ class Quaternion:
 
     def R2V(self,vec):
         return np.dot(self.tminv(),vec)
+
+    def euler(self):
+        q0,q1,q2,q3 = self.a,self.b,self.c,self.d
+        return np.array([[atan2(2*(q0*q1+q2*q3),1-2*(q1**2+q2**2))],[asin(2*(q0*q2-q3*q1))],[atan2(2*(q0*q3+q1*q2),1-2*(q2**2+q3**2))]])

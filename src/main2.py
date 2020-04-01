@@ -4,7 +4,6 @@ sys.path.append(os.path.join(*['..']*2))
 from math import *
 import numpy as np
 from simulator import Simulator
-import matplotlib.pyplot as plt
 from quaternion import Quaternion
 ###############################
 # Paramètres de la simulation #
@@ -66,20 +65,10 @@ mykeys = pi3d.Keyboard()
 while DISPLAY.loop_running():
 
     # on récupère le prochain vecteur rotation (on fait ube étape dans la sim)
-    W = sim.getNextIteration(M,dw,J,B,I)
-
-    #affichage de données toute les 10 itérations
-    if nbit%10 == 0:
-      print("W :", str(W[:,0]), "|| norm :", str(np.linalg.norm(W)), "|| dw :", str(dw[:,0]), "|| B :", str(B[:,0]), "|| Q :", str(sim.Q.axis()[:,0]), "|| M :", str(np.linalg.norm(M)))
+    Q = sim.getNextIteration(M,dw,J,B,I)
 
     # Actualisation de l'affichage graphique
-    b_vector.axis = 1e6*vp.vector(B[0][0],B[1][0],B[2][0])
-    satellite.rotate(angle=np.linalg.norm(W)*dt, axis=vp.vector(W[0][0],W[1][0],W[2][0]), origin=vp.vector(10,10,10))
-
-    # Rate : réalise 25 fois la boucle par seconde
-    vp.rate(fAffichage) #vp.rate(1/dt)
-
-    mymodel.rotate_to_direction(list(*Q.vec()[:,0]))
+    mymodel.rotate_to_direction(Q.V2R(np.array([[0.],[0.],[1.]]))[:,0])
     mymodel.draw()
 
     #Press ESCAPE to terminate
@@ -87,7 +76,6 @@ while DISPLAY.loop_running():
     if k > -1:
         if k == 27:    #Escape key
             mykeys.close()
-            mymouse.stop()
             DISPLAY.destroy()
             break
 
