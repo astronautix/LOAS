@@ -14,3 +14,4 @@ m = 1 #masse du satellite
 
 # Mouvement
 W0 = 0*np.array([[2*(random()-0.5)] for i in range(3)]) #rotation initiale dans le référentiel R_r
+J = 1
