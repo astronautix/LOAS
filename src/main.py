@@ -5,7 +5,7 @@ from math import *
 import numpy as np
 from simulator import Simulator
 from quaternion import Quaternion
-from viewer import Viewer
+from viewer_pyglet import Viewer
 ###############################
 # Paramètres de la simulation #
 ###############################
@@ -13,7 +13,7 @@ from viewer import Viewer
 from conf import *
 
 sim = Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
-viewer = Viewer("teapot.obj", sim.getQ, 30)
+viewer = Viewer("data/uv_sphere.obj", sim.getQ, 30)
 
 sim.start()
 viewer.run()

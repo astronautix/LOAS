@@ -3,4 +3,4 @@ install:
 	cp src/conf.default.py src/conf.py
 
 run:
-	python3 src/main.py
+	cd src && python3 main.py

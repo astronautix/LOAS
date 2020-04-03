@@ -1,47 +1,53 @@
-from threading import Thread
-from quaternion import Quaternion
-import pi3d
+"""This script shows an example of using the PyWavefront module."""
+import ctypes
+import os
 import numpy as np
+from quaternion import Quaternion
+import pyglet
+from pyglet.gl import *
+from pywavefront import visualization
+import pywavefront
 
-class Viewer():
-    def __init__(self, modelFile, Qgetter, fps = 30):
-        self.running = False
+
+class Viewer(pyglet.window.Window):
+    def __init__(self, modelFile, Qgetter, fps=30):
+        super().__init__(resizable=True)
+
+        self.fps = fps
         self.getQ = Qgetter
+        self.Q = Quaternion(1,0,0,0)
+        self.rotation = 0
+        self.meshes = pywavefront.Wavefront(modelFile)
+        self.lightfv = ctypes.c_float * 4
 
-        # Setup display and initialise pi3d
-        self.display = pi3d.Display.create(x=100, y=100, frames_per_second=fps)
-        self.display.set_background(0,0,0,1)    	# r,g,b,alpha
-        pi3d.Light(lightpos=(1.0, 0.0, 0.1))
 
-        # load model and texture
-        self.model = pi3d.Model(
-          file_string=modelFile,
-          name="Teapot", sx=1, sy=1, sz=1, z=5.8
-        )
+    def on_resize(self, width, height):
+        viewport_width, viewport_height = self.get_framebuffer_size()
+        glViewport(0, 0, viewport_width, viewport_height)
 
-        # set model display properties
-        self.model.set_shader(pi3d.Shader("uv_light"))
-        self.model.set_material((3,3,3))
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(60., float(width)/height, 1., 100.)
+        glMatrixMode(GL_MODELVIEW)
+        return True
 
-        # create the object that will handle keyboard
-        self.keys = pi3d.Keyboard()
 
-    def stop(self):
-        self.running = False
+    def on_draw(self):
+        self.clear()
+        glLoadIdentity()
+
+        glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
+        glEnable(GL_LIGHT0)
+
+        glTranslated(0.0, 0.0, -3.0)
+        glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
+        glEnable(GL_LIGHTING)
+
+        visualization.draw(self.meshes)
+
+    def update(self, dt):
+        self.Q = self.getQ()
 
     def run(self):
-        self.running = True
-        while self.running and self.display.loop_running():
-            # Actualisation de l'affichage graphique
-            Q = self.getQ()
-            self.model.rotate_to_direction(Q.V2R(np.array([[0.],[0.],[1.]]))[:,0])
-            self.model.draw()
-
-            #Press ESCAPE to terminate
-            k = self.keys.read()
-            if k > -1:
-                if k == 27:    #Escape key
-                    self.keys.close()
-                    self.display.destroy()
-                    self.stop()
-        self.stop()
+        pyglet.clock.schedule_interval(self.update, 1/self.fps)
+        pyglet.app.run()
