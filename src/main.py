@@ -12,8 +12,6 @@ from viewer import Viewer
 
 from conf import *
 
-I0 = np.diag((m*(ly**2+lz**2)/3,m*(lx**2+lz**2)/3,m*(lx**2+ly**2)/3)) # Tenseur inertie du satellite
-
 sim = Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
 viewer = Viewer("teapot.obj", sim.getQ, 30)
 
