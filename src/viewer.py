@@ -9,6 +9,9 @@ from pywavefront import visualization
 import pywavefront
 
 
+vehicle_line_length = 1.5
+reference_line_length = 0.5
+
 class Viewer(pyglet.window.Window):
     def __init__(self, modelFile, Qgetter, fps=30):
         super().__init__(resizable=True)
@@ -34,16 +37,53 @@ class Viewer(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
+        glClear(GL_COLOR_BUFFER_BIT)
         glLoadIdentity()
 
         glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
+        #glDisable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
 
+        glEnable(GL_DEPTH_TEST)
+
         glTranslated(0.0, 0.0, -3.0)
+
+        glTranslated(-1.5,-1.5,0.)
+        ref_axis = pyglet.graphics.Batch()
+        ref_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,reference_line_length,0.,0.)),
+            ('c3B', (255,0,0,255,0,0))
+        )
+        ref_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,0.,reference_line_length,0.)),
+            ('c3B', (0,255,0,0,255,0))
+        )
+        ref_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,0.,0.,reference_line_length)),
+            ('c3B', (0,0,255,0,0,255))
+        )
+        ref_axis.draw()
+        glTranslated(1.5,1.5,0.)
+
         glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
-        glEnable(GL_LIGHTING)
+
 
         visualization.draw(self.meshes)
+
+        sat_axis = pyglet.graphics.Batch()
+        sat_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,vehicle_line_length,0.,0.)),
+            ('c3B', (255,0,0,255,0,0))
+        )
+        sat_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,0.,vehicle_line_length,0.)),
+            ('c3B', (0,255,0,0,255,0))
+        )
+        sat_axis.add(2, GL_LINES, None,
+            ('v3f', (0.,0.,0.,0.,0.,vehicle_line_length)),
+            ('c3B', (0,0,255,0,0,255))
+        )
+        sat_axis.draw()
 
     def update(self, dt):
         self.Q = self.getQ()

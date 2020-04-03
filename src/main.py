@@ -5,7 +5,7 @@ from math import *
 import numpy as np
 from simulator import Simulator
 from quaternion import Quaternion
-from viewer_pyglet import Viewer
+from viewer import Viewer
 ###############################
 # Paramètres de la simulation #
 ###############################
