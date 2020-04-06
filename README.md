@@ -2,7 +2,7 @@
 Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
 
 ## Install
-Requires `python3` and `python3-pip` and obviously `make`
+Requires also `python3`, `python3-pip` and `make`
 ```bash
 make install
 ```

@@ -13,7 +13,7 @@ from viewer import Viewer
 from conf import *
 
 sim = Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
-viewer = Viewer("data/uv_sphere.obj", sim.getQ, 30)
+viewer = Viewer("obj/player.obj", sim.getQ, 30)
 
 sim.start()
 viewer.run()
