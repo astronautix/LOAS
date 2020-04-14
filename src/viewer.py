@@ -73,7 +73,6 @@ class Viewer(pyglet.window.Window):
         self.clear()
         glLoadIdentity()
         glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
-        glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_DEPTH_TEST)
 
@@ -96,8 +95,9 @@ class Viewer(pyglet.window.Window):
         glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
         drawReference(vehicle_line_length)
 
+        glEnable(GL_LIGHTING)
         self.batch.draw()
-
+        glDisable(GL_LIGHTING)
 
 
     def update(self, dt):
