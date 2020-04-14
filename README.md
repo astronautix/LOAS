@@ -1,14 +1,11 @@
-# AOCS Simulator
-Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
+# LOAS - Low Orbit Attitude Simulator (WIP)
+WIP Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
 
-## Install
-Requires `python3`, `python3-pip` and `make`
+## Usage
 ```bash
-make install
-```
+# install dependencies
+pip3 install -r requirements.txt
 
-## Launch
-Before launching, you can change simulation parameters in `src/config.py`
-```bash
-make run
+#test
+cd examples && python3 viewer.py
 ```
