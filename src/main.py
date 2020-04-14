@@ -6,6 +6,7 @@ import numpy as np
 from simulator import Simulator
 from quaternion import Quaternion
 from viewer import Viewer
+import trimesh
 ###############################
 # Paramètres de la simulation #
 ###############################
@@ -13,7 +14,10 @@ from viewer import Viewer
 from conf import *
 
 sim = Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
-viewer = Viewer("obj/player.obj", sim.getQ, 30)
+mesh = trimesh.load_mesh("obj/bunny.stl")
+mesh.apply_transform(np.eye(4)*.02) #resize mesh
+
+viewer = Viewer( mesh, sim.getQ, 30 )
 
 sim.start()
 viewer.run()

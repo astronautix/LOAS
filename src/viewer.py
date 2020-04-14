@@ -1,4 +1,7 @@
-"""This script shows an example of using the PyWavefront module."""
+"""
+Inspired by
+ - https://github.com/mikedh/trimesh/blob/master/trimesh/viewer/windowed.py
+"""
 import ctypes
 import os
 import numpy as np
@@ -9,6 +12,7 @@ from ctypes import *
 from pywavefront import visualization
 import pywavefront
 from math import sin, cos
+import trimesh
 
 vehicle_line_length = 1.5
 reference_line_length = 0.5
@@ -31,13 +35,18 @@ def drawReference(lineLength):
     ref_axis.draw()
 
 class Viewer(pyglet.window.Window):
-    def __init__(self, modelFile, Qgetter, fps=30):
+    def __init__(self, mesh, Qgetter, fps=30):
         super().__init__(resizable=True)
         self.fps = fps
         self.getQ = Qgetter
         self.Q = Quaternion(1,0,0,0)
         self.rotation = 0
-        self.meshes = pywavefront.Wavefront(modelFile)
+
+        self.batch = pyglet.graphics.Batch()
+        self.batch.add_indexed(
+            *trimesh.rendering.mesh_to_vertexlist( mesh )
+        )
+
         self.lightfv = ctypes.c_float * 4
         self.cameraPos = {
             "theta": 0,
@@ -55,7 +64,7 @@ class Viewer(pyglet.window.Window):
         glViewport(0, 0, viewport_width, viewport_height)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(60., float(width)/height, 1., 100.)
+        gluPerspective(60., float(width)/height, 1., 1000.)
         glMatrixMode(GL_MODELVIEW)
         return True
 
@@ -64,7 +73,7 @@ class Viewer(pyglet.window.Window):
         self.clear()
         glLoadIdentity()
         glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
-        #glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_DEPTH_TEST)
 
@@ -86,10 +95,13 @@ class Viewer(pyglet.window.Window):
 
         glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
         drawReference(vehicle_line_length)
-        visualization.draw(self.meshes)
+
+        self.batch.draw()
+
+
 
     def update(self, dt):
-        #self.Q = self.getQ()
+        self.Q = self.getQ()
         if self.keyboard[pyglet.window.key.UP]:
             self.cameraPos['phi'] += 0.08
         if self.keyboard[pyglet.window.key.DOWN]:
