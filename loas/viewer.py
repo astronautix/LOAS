@@ -5,7 +5,7 @@ Inspired by
 import ctypes
 import os
 import numpy as np
-from quaternion import Quaternion
+import loas
 import pyglet
 from pyglet.gl import *
 from ctypes import *
@@ -39,7 +39,7 @@ class Viewer(pyglet.window.Window):
         super().__init__(resizable=True)
         self.fps = fps
         self.getQ = Qgetter
-        self.Q = Quaternion(1,0,0,0)
+        self.Q = loas.Quaternion(1,0,0,0)
         self.rotation = 0
 
         self.batch = pyglet.graphics.Batch()

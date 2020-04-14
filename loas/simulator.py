@@ -1,5 +1,5 @@
 import numpy as np
-from quaternion import Quaternion
+import loas
 from threading import Thread
 import time
 
@@ -14,7 +14,7 @@ class Simulator(Thread):
         B0 = np.array([[0.],[0.],[0.]]),
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
-        Q0 = Quaternion(1,0,0,0)
+        Q0 = loas.Quaternion(1,0,0,0)
     ):
         Thread.__init__(self)
         self.t = 0 #temps écoulé
@@ -46,7 +46,7 @@ class Simulator(Thread):
         W = self.Q.V2R(np.dot(np.linalg.inv(self.I),self.Q.R2V(self.L))) #Vecteur rotation du satellite dans Rr
         Qnump = self.Q.vec() + self.dQ(W)*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
-        self.Q = Quaternion(*Qnump[:,0])
+        self.Q = loas.Quaternion(*Qnump[:,0])
         self.t += self.dt
         return self.Q
 
