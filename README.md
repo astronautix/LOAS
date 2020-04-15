@@ -1,11 +1,22 @@
 # LOAS - Low Orbit Attitude Simulator (WIP)
 WIP Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
 
+## Requirements
+If there are missing libraries, please open an issue!
+
+- **System libraries:**
+```bash
+sudo apt install libspatialindex-dev
+```
+
+- **Python libraries:**
+```bash
+pip3 install -r requirements.txt
+```
+
+
 ## Usage
 ```bash
-# install dependencies
-pip3 install -r requirements.txt
-
-#test
+# examples/test files
 cd examples && python3 viewer.py
 ```
