@@ -26,12 +26,27 @@ J = 1
 mesh = trimesh.load_mesh("bunny.stl")
 mesh.apply_transform(np.eye(4)*.02) #resize mesh
 
+ray_origins = np.array([[0, 0, -3],
+                        [2, 2, -3]])
+ray_directions = np.array([[0, 0, 1],
+                           [0, 0, 1]])
+
+locations, index_ray, index_tri = mesh.ray.intersects_location(
+    ray_origins=ray_origins,
+    ray_directions=ray_directions
+)
+
 #################
 # Main function #
 #################
 sim = loas.simulator.Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
 
 viewer = loas.viewer.Viewer( mesh, sim.getQ, 30 )
+
+for i in range(len(ray_origins)):
+    viewer.stat_batch.add_line(ray_origins[i], ray_directions[i])
+    viewer.stat_batch.add_pyramid(locations[i])
+
 
 sim.start()
 viewer.run()
