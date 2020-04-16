@@ -9,8 +9,6 @@ import loas
 import pyglet
 from pyglet.gl import *
 from ctypes import *
-from pywavefront import visualization
-import pywavefront
 from math import sin, cos
 import trimesh
 
