@@ -1,7 +1,3 @@
-"""
-Inspired by
- - https://github.com/mikedh/trimesh/blob/master/trimesh/viewer/windowed.py
-"""
 import ctypes
 import os
 import numpy as np
@@ -16,16 +12,40 @@ vehicle_line_length = 1.5
 reference_line_length = 0.5
 
 class CustomBatch(pyglet.graphics.Batch):
+
+    """
+    Extends pyglet's Batch class for our purpose (makes simple to display some objects)
+    """
+
     def __init__(self):
         super().__init__()
 
     def add_reference_axis(self,origin = (0,0,0),lineLength=2):
+        """
+        Add a frame of reference to the visual.
+
+        :param origin: Origin of the frame of reference
+        :type origin: (3,) float
+        :param lineLength: Length of the drawn lines
+        :type lineLength: float
+        """
+
         x,y,z = [float(i) for i in origin]
         self.add_line(origin,(lineLength,0,0),(255,0,0))
         self.add_line(origin,(0,lineLength,0),(0,255,0))
         self.add_line(origin,(0,0,lineLength),(0,0,255))
 
     def add_line(self, origin=(0,0,0), dir = (1,0,0), color = (255,0,0)):
+        """
+        Add a simple line to the visual
+
+        :param origin: Origin of the segment
+        :type origin: (3,) float
+        :param dir: Direction of the segment
+        :type dir: (3,) float
+        :param color: RGB color of the drawn line
+        :type color: (3,) float
+        """
         x,y,z = [float(i) for i in origin]
         a,b,c = [float(i) for i in dir]
         self.add(2, GL_LINES, None,
@@ -34,6 +54,16 @@ class CustomBatch(pyglet.graphics.Batch):
         )
 
     def add_pyramid(self, pos=(0,0,0), size=.05, color=(255,0,0)):
+        """
+        Create a simple diamon-shaped pyramid in the visual
+
+        :param pos: Position of the pyramid
+        :type pos: (3, float)
+        :parma size: Size of the pyramid
+        :type size: float
+        :param color: RGB color of the pyramid
+        :type color: (3,) float
+        """
         x,y,z = [float(i) for i in pos]
         a = (x + size, y + size, z)
         b = (x + size, y - size, z)
@@ -56,7 +86,21 @@ class CustomBatch(pyglet.graphics.Batch):
         )
 
 class Viewer(pyglet.window.Window):
+    """
+    Extends pyglet Window class, handles 3D graphics
+
+    Can be used directly as loas.Viewer
+
+    Inspired by https://github.com/mikedh/trimesh/blob/master/trimesh/viewer/windowed.py
+    """
+
     def __init__(self, satellite, fps=30):
+        """
+        :param satellite: The used satellite instance for the simulation
+        :type satellite: loas.Satellite
+        :param fps: Frames per second
+        :type fps: int
+        """
         super().__init__(resizable=True)
         self.satellite = satellite
         self.fps = fps
@@ -84,6 +128,9 @@ class Viewer(pyglet.window.Window):
         glClearColor(0, 0.3, 0.5, 0)
 
     def on_resize(self, width, height):
+        """
+        Required by pyglet
+        """
         viewport_width, viewport_height = self.get_framebuffer_size()
         glViewport(0, 0, viewport_width, viewport_height)
         glMatrixMode(GL_PROJECTION)
@@ -94,6 +141,9 @@ class Viewer(pyglet.window.Window):
 
 
     def on_draw(self):
+        """
+        Required by pyglet, defines how to draw the visuals
+        """
         self.clear()
         glLoadIdentity()
         glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
@@ -123,6 +173,9 @@ class Viewer(pyglet.window.Window):
         glDisable(GL_LIGHTING)
 
     def update(self, dt):
+        """
+        Called at every new frame, is used to update visual values (e.g. camera position)
+        """
         if self.keyboard[pyglet.window.key.UP]:
             self.cameraPos['phi'] += 0.08
         if self.keyboard[pyglet.window.key.DOWN]:
