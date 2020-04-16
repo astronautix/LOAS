@@ -35,7 +35,7 @@ class CustomBatch(pyglet.graphics.Batch):
             ('c3B', color*2)
         )
 
-    def add_pyramid(self, pos=(0,0,0), size=.2, color=(255,0,0)):
+    def add_pyramid(self, pos=(0,0,0), size=.05, color=(255,0,0)):
         x,y,z = [float(i) for i in pos]
         a = (x + size, y + size, z)
         b = (x + size, y - size, z)
@@ -58,11 +58,10 @@ class CustomBatch(pyglet.graphics.Batch):
         )
 
 class Viewer(pyglet.window.Window):
-    def __init__(self, mesh, Qgetter, fps=30):
+    def __init__(self, satellite, fps=30):
         super().__init__(resizable=True)
+        self.satellite = satellite
         self.fps = fps
-        self.getQ = Qgetter
-        self.Q = loas.Quaternion(1,0,0,0)
         self.rotation = 0
         self.lightfv = ctypes.c_float * 4
         self.cameraPos = {
@@ -78,7 +77,7 @@ class Viewer(pyglet.window.Window):
 
         self.light_dyn_batch = CustomBatch()
         self.light_dyn_batch.add_indexed(
-            *trimesh.rendering.mesh_to_vertexlist( mesh )
+            *trimesh.rendering.mesh_to_vertexlist( satellite.mesh )
         )
 
         self.stat_batch = CustomBatch()
@@ -114,7 +113,7 @@ class Viewer(pyglet.window.Window):
         # draw static objects (e.g. ref frames)
         self.stat_batch.draw()
 
-        # glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
+        #glRotatef(self.satellite.Q.angle()*180/3.14, *self.satellite.Q.axis())
 
         # draw objects that move along with the satellites
         #the ones that are not handled by GL_LIGHTING
@@ -126,7 +125,6 @@ class Viewer(pyglet.window.Window):
         glDisable(GL_LIGHTING)
 
     def update(self, dt):
-        self.Q = self.getQ()
         if self.keyboard[pyglet.window.key.UP]:
             self.cameraPos['phi'] += 0.08
         if self.keyboard[pyglet.window.key.DOWN]:

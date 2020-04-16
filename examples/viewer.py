@@ -26,29 +26,23 @@ J = 1
 mesh = trimesh.load_mesh("bunny.stl")
 mesh.apply_transform(np.eye(4)*.02) #resize mesh
 
-ray_origins = np.array([[0, 0, -3],
-                        [2, 2, -3]])
-ray_directions = np.array([[0, 0, 1],
-                           [0, 0, 1]])
+particles = [
+    loas.atmospheric_drag.Particle((.3,0,-3), (0,0,1)),
+    loas.atmospheric_drag.Particle((1,0,-3), (0,0,1)),
+    loas.atmospheric_drag.Particle((-.3,0,-3), (0,0,1)),
+]
 
-locations, index_ray, index_tri = mesh.ray.intersects_location(
-    ray_origins=ray_origins,
-    ray_directions=ray_directions
-)
+sat = loas.Satellite( mesh, dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0 )
 
-#################
-# Main function #
-#################
-sim = loas.simulator.Simulator(dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0)
+viewer = loas.Viewer( sat, 30 )
 
-viewer = loas.viewer.Viewer( mesh, sim.getQ, 30 )
+for particle in particles:
+    viewer.stat_batch.add_line(particle.origin, particle.dir)
+    location, normal = particle.getCollisionPointOnMesh(mesh, loas.Quaternion(1,0,0,0))
+    viewer.stat_batch.add_pyramid(location)
+    viewer.stat_batch.add_line(location, normal)
 
-for i in range(len(ray_origins)):
-    viewer.stat_batch.add_line(ray_origins[i], ray_directions[i])
-    viewer.stat_batch.add_pyramid(locations[i])
-
-
-sim.start()
+sat.start()
 viewer.run()
-sim.stop()
-sim.join()
+sat.stop()
+sat.join()

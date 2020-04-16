@@ -3,10 +3,11 @@ import loas
 from threading import Thread
 import time
 
-class Simulator(Thread):
+class Satellite(Thread):
 
     def __init__(
         self,
+        mesh,
         dt = 1/30,
         M0 = np.array([[0.],[0.],[0.]]),
         dw0 = np.array([[0.],[0.],[0.]]),
@@ -26,7 +27,8 @@ class Simulator(Thread):
         self.J = J0 #Moment d'inertie des RI
         self.B = B0 #Vecteur champ magnétique environnant, exprimé dans Rr
         self.I = I0 #Tenseur d'inertie du satellite exprimé dans Rv
-        self.running = False
+        self.running = False,
+        self.mesh = mesh
 
     def dQ(self,W): #renvoie la dérivée du quaternion
         qw,qx,qy,qz = self.Q[0],self.Q[1],self.Q[2],self.Q[3]
@@ -58,9 +60,6 @@ class Simulator(Thread):
 
     def setB(self, B):
         self.B = B
-
-    def getQ(self):
-        return self.Q
 
     def stop(self):
         self.running = False

@@ -1,3 +1,5 @@
 from .quaternion import Quaternion
-from .simulator import Simulator
+from .satellite import Satellite
 from .viewer import Viewer
+from .atmospheric_drag import AtmosphericDrag
+from . import atmospheric_drag
