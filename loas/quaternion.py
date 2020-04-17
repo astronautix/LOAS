@@ -109,7 +109,7 @@ class Quaternion:
         :param vec: Input vector
         :type vec: (3,1) numpy array
         """
-        return np.dot(self.tm(),vec)
+        return self.tm() @ vec
 
     def R2V(self,vec):
         """
@@ -118,7 +118,7 @@ class Quaternion:
         :param vec: Input vector
         :type vec: (3,1) numpy array
         """
-        return np.dot(self.tminv(),vec)
+        return self.tminv() @ vec
 
     def euler(self):
         """

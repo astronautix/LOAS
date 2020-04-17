@@ -70,7 +70,7 @@ class Satellite(Thread):
                          [ qw,  qz, -qy],
                          [-qz,  qw,  qx],
                          [ qy, -qx,  qw]])
-        return 1/2*np.dot(expQ,W)
+        return expQ @ W / 2
 
     def dL(self): #renvoie la dérivée du moment cinétique avec le th du moment cinétique
         """
@@ -85,7 +85,7 @@ class Satellite(Thread):
         Update the instance at the next simulation iteration
         """
         self.L += self.dL()*self.dt #calcul du nouveau moment cinétique
-        W = self.Q.V2R(np.dot(np.linalg.inv(self.I),self.Q.R2V(self.L))) #Vecteur rotation du satellite dans Rr
+        W = self.Q.V2R(np.linalg.inv(self.I) @ self.Q.R2V(self.L)) #Vecteur rotation du satellite dans Rr
         Qnump = self.Q.vec() + self.dQ(W)*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
         self.Q = loas.Quaternion(*Qnump[:,0])
