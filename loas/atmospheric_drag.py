@@ -7,7 +7,7 @@ class Particle:
     Represent a single (air, or whatever) particle that will (or not) collide with the satellite
     """
 
-    def __init__(self, origin, dir):
+    def __init__(self, origin, dir, mass=1):
         """
         :param origin: Origin of the particle
         :type origin: (3,) float
@@ -16,6 +16,7 @@ class Particle:
         """
         self.origin = origin
         self.dir = dir
+        self.mass = mass
 
     def getCollisionPointOnMesh(self, satellite):
         """
@@ -25,22 +26,31 @@ class Particle:
         :type satellite: loas.Satellite
         """
 
+        origin_sat = satellite.Q.R2V(self.origin)[:,0]
+        dir_sat = satellite.Q.R2V(self.dir)[:,0]
+
         locations, index_ray, index_tri = satellite.mesh.ray.intersects_location(
-            ray_origins=[self.origin],
-            ray_directions=[self.dir]
+            ray_origins=[origin_sat],
+            ray_directions=[dir_sat]
         )
 
+        if len(locations) == 0:
+            return None, None
+
         dists = np.array([
-            (self.origin[0] - location[0])**2 +
-            (self.origin[1] - location[1])**2 +
-            (self.origin[2] - location[2])**2
+            (origin_sat[0] - location[0])**2 +
+            (origin_sat[1] - location[1])**2 +
+            (origin_sat[2] - location[2])**2
             for location in locations
         ])
 
         index_collision = np.argmin(dists)
 
         location = locations[index_collision]
-        normal = mesh.face_normals[index_tri[index_collision]]
+        normal = satellite.mesh.face_normals[index_tri[index_collision]]
+
+        location = satellite.Q.V2R(np.array([[i] for i in location]))[:,0]
+        normal = satellite.Q.V2R(np.array([[i] for i in normal]))[:,0]
 
         return location, normal
 
@@ -51,14 +61,5 @@ class Particle:
         :param satellite: Satellite that has to encounter the particle
         :type satellite: loas.Satellite
         """
-        pass
 
-class AtmosphericDrag:
-    """
-    TODO
-    """
-    def __init__(self, satellite):
-        self.mesh = mesh
-
-    def _getRandomParticle():
         pass
