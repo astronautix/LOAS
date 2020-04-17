@@ -17,8 +17,16 @@ class CustomBatch(pyglet.graphics.Batch):
     Extends pyglet's Batch class for our purpose (makes simple to display some objects)
     """
 
-    def __init__(self):
+    def __init__(self, gl_lightning=False, attitude_getter=None):
         super().__init__()
+        self.getQ = attitude_getter
+        self.gl_lightning = gl_lightning
+        self.hidden = False
+
+    def add_mesh(self, mesh):
+        self.add_indexed(
+            *trimesh.rendering.mesh_to_vertexlist( mesh )
+        )
 
     def add_reference_axis(self,origin = (0,0,0),lineLength=2):
         """
@@ -85,6 +93,32 @@ class CustomBatch(pyglet.graphics.Batch):
             ('c3B', color*24)
         )
 
+    def hide(self):
+        self.hidden = True
+
+    def draw(self):
+        if self.hidden:
+            return
+        glPushMatrix() # saves the current projection matrix
+        if self.gl_lightning:
+            glEnable(GL_LIGHTING)
+        else:
+            glDisable(GL_LIGHTING)
+        if self.getQ is not None:
+            Q = self.getQ()
+            glRotatef(Q.angle()*180/3.14, *Q.axis())
+        super().draw()
+        glPopMatrix() #uses back initial projection matrix (revert rotation)
+
+class CustomBatchCollection():
+    def __init__(self):
+        self.batch_collection = []
+    def add(self, batch):
+        self.batch_collection.append(batch)
+    def draw(self):
+        for batch in self.batch_collection:
+            batch.draw()
+
 class Viewer(pyglet.window.Window):
     """
     Extends pyglet Window class, handles 3D graphics
@@ -114,16 +148,25 @@ class Viewer(pyglet.window.Window):
         self.keyboard = pyglet.window.key.KeyStateHandler()
         self.push_handlers(self.keyboard)
 
-        self.unlight_dyn_batch = CustomBatch()
-        self.unlight_dyn_batch.add_reference_axis()
+        self.batch_buffer = []
 
-        self.light_dyn_batch = CustomBatch()
-        self.light_dyn_batch.add_indexed(
-            *trimesh.rendering.mesh_to_vertexlist( satellite.mesh )
+        self.batches = CustomBatchCollection()
+
+
+        tmp = CustomBatch()
+        tmp.add_reference_axis(origin=(-3,0,0))
+        self.batches.add(tmp)
+        tmp = CustomBatch(
+            attitude_getter = lambda: self.satellite.Q
         )
-
-        self.stat_batch = CustomBatch()
-        self.stat_batch.add_reference_axis(origin=(-3,0,0))
+        tmp.add_reference_axis()
+        self.batches.add(tmp)
+        tmp = CustomBatch(
+            attitude_getter = lambda: self.satellite.Q,
+            gl_lightning = True
+        )
+        tmp.add_mesh(satellite.mesh)
+        self.batches.add(tmp)
 
         glClearColor(0, 0.3, 0.5, 0)
 
@@ -158,24 +201,17 @@ class Viewer(pyglet.window.Window):
             0, 0, 0, 0, 1, 0
         )
 
-        # draw static objects (e.g. ref frames)
-        self.stat_batch.draw()
-
-        #glRotatef(self.satellite.Q.angle()*180/3.14, *self.satellite.Q.axis())
-
-        # draw objects that move along with the satellites
-        #the ones that are not handled by GL_LIGHTING
-        self.unlight_dyn_batch.draw()
-
-        #and the ones that are handled by GL_LIGHTING
-        glEnable(GL_LIGHTING)
-        self.light_dyn_batch.draw()
-        glDisable(GL_LIGHTING)
+        self.batches.draw()
 
     def update(self, dt):
         """
         Called at every new frame, is used to update visual values (e.g. camera position)
         """
+
+        for batch in self.batch_buffer:
+            self.batches.add(batch)
+        self.batch_buffer = []
+
         if self.keyboard[pyglet.window.key.UP]:
             self.cameraPos['phi'] += 0.08
         if self.keyboard[pyglet.window.key.DOWN]:
@@ -188,6 +224,9 @@ class Viewer(pyglet.window.Window):
             self.cameraPos['dist'] -= 0.3
         if self.keyboard[pyglet.window.key.NUM_SUBTRACT]:
             self.cameraPos['dist'] += 0.3
+
+    def add_batch(self, batch):
+        self.batches.add(batch)
 
     def run(self):
         pyglet.clock.schedule_interval(self.update, 1/self.fps)
