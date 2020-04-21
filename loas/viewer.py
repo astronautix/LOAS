@@ -43,7 +43,7 @@ class CustomBatch(pyglet.graphics.Batch):
         self.add_line(origin,(0,lineLength,0),(0,255,0))
         self.add_line(origin,(0,0,lineLength),(0,0,255))
 
-    def add_line(self, origin=(0,0,0), dir = (1,0,0), color = (255,0,0)):
+    def add_line(self, origin=(0,0,0), dir=(1,0,0), color = (255,0,0)):
         """
         Add a simple line to the visual
 
@@ -110,14 +110,6 @@ class CustomBatch(pyglet.graphics.Batch):
         super().draw()
         glPopMatrix() #uses back initial projection matrix (revert rotation)
 
-class CustomBatchCollection():
-    def __init__(self):
-        self.batch_collection = []
-    def add(self, batch):
-        self.batch_collection.append(batch)
-    def draw(self):
-        for batch in self.batch_collection:
-            batch.draw()
 
 class Viewer(pyglet.window.Window):
     """
@@ -135,7 +127,7 @@ class Viewer(pyglet.window.Window):
         :param fps: Frames per second
         :type fps: int
         """
-        super().__init__(resizable=True)
+        super().__init__(700,700,resizable=True)
         self.satellite = satellite
         self.fps = fps
         self.rotation = 0
@@ -150,23 +142,24 @@ class Viewer(pyglet.window.Window):
 
         self.batch_buffer = []
 
-        self.batches = CustomBatchCollection()
+        self.batches = []
 
+        self.named_batches = {}
 
         tmp = CustomBatch()
         tmp.add_reference_axis(origin=(-3,0,0))
-        self.batches.add(tmp)
+        self.batches.append(tmp)
         tmp = CustomBatch(
             attitude_getter = lambda: self.satellite.Q
         )
         tmp.add_reference_axis()
-        self.batches.add(tmp)
+        self.batches.append(tmp)
         tmp = CustomBatch(
             attitude_getter = lambda: self.satellite.Q,
             gl_lightning = True
         )
         tmp.add_mesh(satellite.mesh)
-        self.batches.add(tmp)
+        self.batches.append(tmp)
 
         glClearColor(0, 0.3, 0.5, 0)
 
@@ -201,15 +194,17 @@ class Viewer(pyglet.window.Window):
             0, 0, 0, 0, 1, 0
         )
 
-        self.batches.draw()
+        for batch in self.batches:
+            batch.draw()
+
+        for batch in self.named_batches.values():
+            batch.draw()
 
     def update(self, dt):
         """
         Called at every new frame, is used to update visual values (e.g. camera position)
         """
 
-        for batch in self.batch_buffer:
-            self.batches.add(batch)
         self.batch_buffer = []
 
         if self.keyboard[pyglet.window.key.UP]:
@@ -226,7 +221,10 @@ class Viewer(pyglet.window.Window):
             self.cameraPos['dist'] += 0.3
 
     def add_batch(self, batch):
-        self.batches.add(batch)
+        self.batches.append(batch)
+
+    def set_named_batch(self, name, batch):
+        self.named_batches[name] = batch
 
     def run(self):
         pyglet.clock.schedule_interval(self.update, 1/self.fps)
