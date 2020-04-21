@@ -23,7 +23,8 @@ class Satellite(Thread):
         B0 = np.array([[0.],[0.],[0.]]),
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
-        Q0 = loas.Quaternion(1,0,0,0)
+        Q0 = loas.Quaternion(1,0,0,0),
+        parasite_torque_getter = lambda satellite: np.array([[0], [0], [0]])
     ):
         """
         :param mesh: Mesh of the satellite
@@ -57,8 +58,9 @@ class Satellite(Thread):
         self.I = I0 #Tenseur d'inertie du satellite exprimé dans Rv
         self.running = False,
         self.mesh = mesh
+        self.get_parasite_torque = parasite_torque_getter
 
-    def dQ(self,W): #renvoie la dérivée du quaternion
+    def dQ(self): #renvoie la dérivée du quaternion
         """
         Gives the first derivative of the attitude quaternion
 
@@ -70,14 +72,14 @@ class Satellite(Thread):
                          [ qw,  qz, -qy],
                          [-qz,  qw,  qx],
                          [ qy, -qx,  qw]])
-        return expQ @ W / 2
+        return expQ @ self.getW() / 2
 
     def dL(self): #renvoie la dérivée du moment cinétique avec le th du moment cinétique
         """
         Gives the first derivative of the angular momentum (uses dynamic equations)
         """
         C_Rv = np.cross(self.M, self.Q.R2V(self.B), axisa=0, axisb=0,axisc=0) - self.J*self.dw #couple dans Rv du au MC et aux RW
-        C_Rr = self.Q.V2R(C_Rv)
+        C_Rr = self.Q.V2R(C_Rv) + self.get_parasite_torque(self)
         return C_Rr
 
     def getNextIteration(self):
@@ -85,8 +87,7 @@ class Satellite(Thread):
         Update the instance at the next simulation iteration
         """
         self.L += self.dL()*self.dt #calcul du nouveau moment cinétique
-        W = self.Q.V2R(np.linalg.inv(self.I) @ self.Q.R2V(self.L)) #Vecteur rotation du satellite dans Rr
-        Qnump = self.Q.vec() + self.dQ(W)*self.dt #calcul de la nouvelle orientation
+        Qnump = self.Q.vec() + self.dQ()*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
         self.Q = loas.Quaternion(*Qnump[:,0])
         self.t += self.dt
@@ -109,6 +110,9 @@ class Satellite(Thread):
         External magnetic field setter
         """
         self.B = B
+
+    def getW(self):
+        return self.Q.V2R(np.linalg.inv(self.I) @ self.Q.R2V(self.L))
 
     def stop(self):
         """
