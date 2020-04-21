@@ -15,18 +15,17 @@ def showImpactOnSatellite(satellite, particles, viewer):
     and display it in the *viewer*
     """
 
-    oldbatch = loas.viewer.CustomBatch()
-    while 1:
+    while satellite.running:
         batch = loas.viewer.CustomBatch()
         for particle in particles:
-            batch.add_line(particle.origin[:,0], particle.dir[:,0])
-            location, normal = particle.getCollisionPointOnMesh(satellite)
+            batch.add_line(particle.origin[:,0], particle.speed[:,0])
+            location, normal, rel_speed, momentum = particle.getCollisionOnMesh(satellite)
             if location is not None:
-                batch.add_pyramid(location)
-                batch.add_line(location, normal)
-        oldbatch.hide()
-        viewer.add_batch(batch)
-        oldbatch = batch
+                batch.add_pyramid(location[:,0])
+                batch.add_line(location[:,0], normal[:,0])
+                batch.add_line(location[:,0], rel_speed[:,0], color=(0,255,0))
+                batch.add_line(location[:,0], momentum[:,0], color=(0,0,255))
+        viewer.set_named_batch('uopidou',batch)
         time.sleep(.1)
 
 #########################
@@ -46,25 +45,43 @@ W0 = 0*np.array([[2*(random.random()-0.5)] for i in range(3)]) #rotation initial
 J = 1
 
 # load mesh object and resize it
-mesh = trimesh.load_mesh("./bunny.stl")
-mesh.apply_transform(np.eye(4)*.02) #resize mesh
+mesh = trimesh.load_mesh("./satellite.stl")
+val = (2)**(1/2)/2
+mesh.apply_transform(
+    np.array([
+        [0, -1, 0, 0],
+        [1, 0, 0, 0],
+        [0,0,1,0],
+        [0,0,0,1]
+    ]) @
+    np.array([
+        [1,0,0,-28.85],
+        [0,1,0,-0.2],
+        [0,0,1,-0.1],
+        [0,0,0,1]
+    ]) @
+    np.eye(4)*3
+) #resize mesh
 
 sat = loas.Satellite( mesh, dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0 )
 
 viewer = loas.Viewer( sat, 30 )
 
+sat.start()
 threading.Thread(
     target = lambda: showImpactOnSatellite(
         sat,
         [
-            loas.atmospheric_drag.Particle(np.array([[.3],[0],[-5]]), np.array([[0],[0],[1]])),
-            loas.atmospheric_drag.Particle(np.array([[1],[0],[-5]]), np.array([[0],[0],[1]])),
-            loas.atmospheric_drag.Particle(np.array([[-.3],[0],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[.3],[1],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[1],[1],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[-.3],[1],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[.3],[-1],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[1],[-1],[-5]]), np.array([[0],[0],[1]])),
+            loas.atmospheric_drag.Particle(np.array([[-.3],[-1],[-5]]), np.array([[0],[0],[1]])),
         ],
         viewer
     )
 ).start()
-sat.start()
 viewer.run()
 sat.stop()
 sat.join()
