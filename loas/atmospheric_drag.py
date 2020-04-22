@@ -25,8 +25,8 @@ class SparseDrag(loas.Torque):
 
         for _ in range(nb_particles):
 
-            r = random.uniform(0, self.bounding_sphere_radius)
-            theta = random.uniform(0,2*math.pi)
+            r = self.bounding_sphere_radius*math.sqrt(random.random())
+            theta = 2*math.pi*random.random()
             origin = loas.vector.tov(
                 r*math.cos(theta),
                 r*math.sin(theta),
