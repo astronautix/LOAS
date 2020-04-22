@@ -78,8 +78,8 @@ class Satellite(Thread):
         """
         Gives the first derivative of the angular momentum (uses dynamic equations)
         """
-        C_Rv = np.cross(self.M, self.Q.R2V(self.B), axisa=0, axisb=0,axisc=0) - self.J*self.dw #couple dans Rv du au MC et aux RW
-        C_Rr = self.Q.V2R(C_Rv) + self.get_parasite_torque(self)
+        C_Rv_no_parasite = np.cross(self.M, self.Q.R2V(self.B), axisa=0, axisb=0,axisc=0) - self.J*self.dw #couple dans Rv du au MC et aux RW
+        C_Rr = self.Q.V2R(C_Rv_no_parasite) + self.get_parasite_torque(self)
         return C_Rr
 
     def getNextIteration(self):
@@ -125,6 +125,14 @@ class Satellite(Thread):
         Launches the simulation in a thread
         """
         self.running = True
+        prevtime = time.time()
         while self.running:
+
             self.getNextIteration()
-            time.sleep(self.dt)
+
+            currtime = time.time()
+            deltatime = currtime - prevtime
+            prevtime = currtime
+            pause = max(0, self.dt - deltatime)
+            print(round(1/(pause + deltatime), 1), "/", round(1/self.dt), "FPS", end="\r")
+            time.sleep(pause)
