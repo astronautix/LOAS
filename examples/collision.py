@@ -45,10 +45,11 @@ W0 = 0*np.array([[2*(random.random()-0.5)] for i in range(3)]) #rotation initial
 J = 1
 
 # load mesh object and resize it
-mesh = trimesh.load_mesh("./satellite.stl")
+mesh = trimesh.load_mesh("./bunny.stl")
 bounds = np.array(mesh.bounds)
 mesh.apply_translation(-(bounds[0] + bounds[1])/2)
-mesh.apply_scale(3)
+mesh.apply_translation((0,.1,0))
+mesh.apply_scale(.03)
 
 sat = loas.Satellite( mesh, dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0 )
 
@@ -63,7 +64,7 @@ threading.Thread(
                 np.array([[i],[0],[-5]]),
                 np.array([[0],[0],[1]])
             )
-            for i in range(-3,4)
+            for i in range(-1,2)
         ],
         viewer
     )
