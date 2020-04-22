@@ -9,7 +9,7 @@ import threading
 import time
 
 dt = 1/25 # Simulation time step
-I0 = np.diag(1,1,1) # Satellite inertia tensor
+I0 = np.diag((20,20,20)) # Satellite inertia tensor
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./satellite.stl")
@@ -18,11 +18,9 @@ mesh.apply_translation(-(bounds[0] + bounds[1])/2) # center the satellite (the m
 mesh.apply_scale(3) # rescale the model
 
 satellite = loas.Satellite( mesh, dt, I0 = I0 )
-viewer = loas.Viewer( sat, 30 )
-
-sat.get_parasite_torque = lambda satellite : loas.atmospheric_drag.torque(
-    satellite, 50,1, viewer, 1
-)
+viewer = loas.Viewer( satellite, 30 )
+drag_torque = loas.SparseDrag( satellite, 100, 1, 1, viewer )
+satellite.addParasiteTorque( drag_torque )
 
 satellite.start()
 viewer.run() # retuns only when viewer is closed

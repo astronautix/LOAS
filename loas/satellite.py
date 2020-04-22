@@ -23,8 +23,7 @@ class Satellite(Thread):
         B0 = np.array([[0.],[0.],[0.]]),
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
-        Q0 = loas.Quaternion(1,0,0,0),
-        parasite_torque_getter = lambda satellite: np.array([[0], [0], [0]])
+        Q0 = loas.Quaternion(1,0,0,0)
     ):
         """
         :param mesh: Mesh of the satellite
@@ -58,7 +57,7 @@ class Satellite(Thread):
         self.I = I0 #Tenseur d'inertie du satellite exprimé dans Rv
         self.running = False,
         self.mesh = mesh
-        self.get_parasite_torque = parasite_torque_getter
+        self.parasite_torques = []
 
     def dQ(self): #renvoie la dérivée du quaternion
         """
@@ -79,7 +78,7 @@ class Satellite(Thread):
         Gives the first derivative of the angular momentum (uses dynamic equations)
         """
         C_Rv_no_parasite = np.cross(self.M, self.Q.R2V(self.B), axisa=0, axisb=0,axisc=0) - self.J*self.dw #couple dans Rv du au MC et aux RW
-        C_Rr = self.Q.V2R(C_Rv_no_parasite) + self.get_parasite_torque(self)
+        C_Rr = self.Q.V2R(C_Rv_no_parasite) + sum([torque.getTorque() for torque in self.parasite_torques])
         return C_Rr
 
     def getNextIteration(self):
@@ -92,6 +91,9 @@ class Satellite(Thread):
         self.Q = loas.Quaternion(*Qnump[:,0])
         self.t += self.dt
         return self.Q
+
+    def addParasiteTorque(self,parasite_torque):
+        self.parasite_torques.append(parasite_torque)
 
     def setM(self, M):
         """

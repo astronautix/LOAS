@@ -4,44 +4,49 @@ import trimesh
 import random
 import math
 
-def torque(satellite, particle_rate, satellite_speed, viewer, mass_particle):
-    bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
-    speed = loas.vector.tov(0,0,satellite_speed)
-    dt = satellite.dt # the simulation step is the same that satellites's simulation time step
+class SparseDrag(loas.Torque):
+    def __init__(self, satellite, particle_rate, satellite_speed, particle_mass, viewer = None):
+        super().__init__(satellite, viewer)
+        self.particle_rate = particle_rate
+        self.speed = loas.vector.tov(0,0,satellite_speed)
+        self.particle_mass = particle_mass
+        self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
 
-    nb_particles = max(round(random.normalvariate(
-        mu = particle_rate,
-        sigma = (particle_rate)**(1/2)
-    )),0) # uniform distribution of particle in an infinite volume
+    def getTorque(self):
+        nb_particles = max(round(random.normalvariate(
+            mu = self.particle_rate,
+            sigma = (self.particle_rate)**(1/2)
+        )),0) # uniform distribution of particle in an infinite volume
 
-    torque = loas.vector.tov(0,0,0)
+        torque = loas.vector.tov(0,0,0)
 
-    if viewer is not None:
-        batch = loas.viewer.CustomBatch()
+        if self.viewer is not None:
+            batch = loas.viewer.CustomBatch()
 
-    for _ in range(nb_particles):
+        for _ in range(nb_particles):
 
-        r = random.uniform(0, bounding_sphere_radius)
-        theta = random.uniform(0,2*math.pi)
-        origin = loas.vector.tov(
-            r*math.cos(theta),
-            r*math.sin(theta),
-            -2*bounding_sphere_radius
-        )
+            r = random.uniform(0, self.bounding_sphere_radius)
+            theta = random.uniform(0,2*math.pi)
+            origin = loas.vector.tov(
+                r*math.cos(theta),
+                r*math.sin(theta),
+                -2*self.bounding_sphere_radius
+            )
 
-        location, _, _, momentum = Particle(origin, speed, mass_particle).getCollisionOnMesh(satellite)
+            location, _, _, momentum = Particle(origin, self.speed, self.particle_mass).getCollisionOnMesh(self.satellite)
 
-        if viewer is not None:
-            batch.add_line(origin[:,0], speed[:,0])
-        if location is not None:
-            torque += loas.vector.cross(location, momentum/dt)
-            if viewer is not None:
-                batch.add_pyramid(location[:,0])
+            if self.viewer is not None:
+                batch.add_line(origin[:,0], self.speed[:,0])
+            if location is not None:
+                torque += loas.vector.cross(location, momentum/self.satellite.dt)
+                if self.viewer is not None:
+                    batch.add_pyramid(location[:,0])
 
-    if viewer is not None:
-        batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
-        viewer.set_named_batch('atm_drag_viewer', batch)
-    return torque
+        if self.viewer is not None:
+            batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
+            self.viewer.set_named_batch('atm_drag_viewer', batch)
+
+        return torque
 
 
 class Particle:
