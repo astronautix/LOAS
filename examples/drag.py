@@ -34,7 +34,9 @@ sat = loas.Satellite( mesh, dt, I0 = I0 )
 
 viewer = loas.Viewer( sat, 30 )
 
-sat.get_parasite_torque = lambda satellite : loas.atmospheric_drag.atmospheric_drag_torque(satellite, 100,1, viewer, 1, [-2.5,2.5], [-2.5,2.5])
+sat.get_parasite_torque = lambda satellite : loas.atmospheric_drag.torque(
+    satellite, 50,1, viewer, 1
+)
 
 sat.start()
 viewer.run()

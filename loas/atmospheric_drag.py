@@ -3,6 +3,44 @@ import loas
 import trimesh
 import random
 
+def torque(satellite, particle_rate, satellite_speed, viewer, mass_particle):
+    bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
+    speed = loas.vector.tov(0,0,satellite_speed)
+    dt = satellite.dt # the simulation step is the same that satellites's simulation time step
+
+    nb_particles = max(round(random.normalvariate(
+        mu = particle_rate,
+        sigma = (particle_rate)**(1/2)
+    )),0) # uniform distribution of particle in an infinite volume
+
+    torque = loas.vector.tov(0,0,0)
+
+    if viewer is not None:
+        batch = loas.viewer.CustomBatch()
+
+    for _ in range(nb_particles):
+
+        origin = loas.vector.tov(
+            random.uniform(-bounding_sphere_radius, bounding_sphere_radius),
+            random.uniform(-bounding_sphere_radius, bounding_sphere_radius),
+            -2*bounding_sphere_radius
+        )
+
+        location, _, _, momentum = Particle(origin, speed, mass_particle).getCollisionOnMesh(satellite)
+
+        if viewer is not None:
+            batch.add_line(origin[:,0], speed[:,0])
+        if location is not None:
+            torque += loas.vector.cross(location, momentum/dt)
+            if viewer is not None:
+                batch.add_pyramid(location[:,0])
+
+    if viewer is not None:
+        batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
+        viewer.set_named_batch('atm_drag_viewer', batch)
+    return torque
+
+
 class Particle:
     """
     Represent a single (air, or whatever) particle that will (or not) collide with the satellite
@@ -63,27 +101,3 @@ class Particle:
         momentum = 2*self.mass*normal_rel_speed_vec # elastic collision
 
         return location, normal, rel_speed, momentum
-
-
-def atmospheric_drag_torque(satellite, particle_rate, speed, viewer, mass_particle, x_domain, y_domain):
-    z0 = -5
-    dt = satellite.dt
-    nb_particles = max(round(random.normalvariate(
-        mu = particle_rate,
-        sigma = (particle_rate)**(1/2)
-    )),0) # uniform distribution of particle in an infinite volume
-    torque = loas.vector.tov(0,0,0)
-    batch = loas.viewer.CustomBatch()
-    for _ in range(nb_particles):
-        origin = loas.vector.tov(random.uniform(*x_domain), random.uniform(*y_domain), z0)
-        speed_vec = loas.vector.tov(0,0,speed)
-        batch.add_line(origin[:,0], speed_vec[:,0])
-        particle = Particle(origin, speed_vec, mass_particle)
-        location, _, _, momentum = particle.getCollisionOnMesh(satellite)
-        if location is None:
-            continue
-        torque += loas.vector.cross(location, momentum/dt)
-        batch.add_pyramid(location[:,0])
-    batch.add_line(origin=(0,0,0), dir=(torque*dt)[:,0], color=(255,255,255))
-    viewer.set_named_batch('atm_drag_viewer', batch)
-    return torque
