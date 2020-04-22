@@ -22,10 +22,3 @@ pip3 install -r requirements.txt
 # examples/test files
 cd examples && python3 viewer.py
 ```
-
-## Known Issues
-### `pyglet.gl.lib.GLException: b'invalid operation'`
-Fix:
-```bash
-export PYGLET_GRAPHICS_VBO=0
-```

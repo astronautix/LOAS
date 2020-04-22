@@ -8,8 +8,7 @@ from ctypes import *
 from math import sin, cos
 import trimesh
 
-vehicle_line_length = 1.5
-reference_line_length = 0.5
+pyglet.options['graphics_vbo'] = 0
 
 class CustomBatch(pyglet.graphics.Batch):
 
