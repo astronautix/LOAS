@@ -26,22 +26,9 @@ J = 1
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./satellite.stl")
-val = (2)**(1/2)/2
-mesh.apply_transform(
-    np.array([
-        [0, -1, 0, 0],
-        [1, 0, 0, 0],
-        [0,0,1,0],
-        [0,0,0,1]
-    ]) @
-    np.array([
-        [1,0,0,-28.85],
-        [0,1,0,-0.2],
-        [0,0,1,-0.1],
-        [0,0,0,1]
-    ]) @
-    np.eye(4)*3
-) #resize mesh
+bounds = np.array(mesh.bounds)
+mesh.apply_translation(-(bounds[0] + bounds[1])/2)
+mesh.apply_scale(3)
 
 sat = loas.Satellite( mesh, dt, I0 = I0 )
 
