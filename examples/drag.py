@@ -8,37 +8,23 @@ import trimesh
 import threading
 import time
 
-#########################
-# Simulation parameters #
-#########################
-# Temps
-dt = 1/25 #pas de temps de la simulation
-fAffichage = 25 #fréquence d'affichage
-
-# Géométrie
-lx,ly,lz = 10,10,10 #longueur du satellit selon les axes x,y,z
-m = 1 #masse du satellite
-I0 = np.diag((m*(ly**2+lz**2)/3,m*(lx**2+lz**2)/3,m*(lx**2+ly**2)/3)) # Tenseur inertie du satellite
-
-# Mouvement
-W0 = 0*np.array([[2*(random.random()-0.5)] for i in range(3)]) #rotation initiale dans le référentiel R_r
-J = 1
+dt = 1/25 # Simulation time step
+I0 = np.diag(1,1,1) # Satellite inertia tensor
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./satellite.stl")
 bounds = np.array(mesh.bounds)
-mesh.apply_translation(-(bounds[0] + bounds[1])/2)
-mesh.apply_scale(3)
+mesh.apply_translation(-(bounds[0] + bounds[1])/2) # center the satellite (the mass center should be on 0,0)
+mesh.apply_scale(3) # rescale the model
 
-sat = loas.Satellite( mesh, dt, I0 = I0 )
-
+satellite = loas.Satellite( mesh, dt, I0 = I0 )
 viewer = loas.Viewer( sat, 30 )
 
 sat.get_parasite_torque = lambda satellite : loas.atmospheric_drag.torque(
     satellite, 50,1, viewer, 1
 )
 
-sat.start()
-viewer.run()
-sat.stop()
-sat.join()
+satellite.start()
+viewer.run() # retuns only when viewer is closed
+satellite.stop()
+satellite.join()
