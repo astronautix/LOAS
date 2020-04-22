@@ -2,11 +2,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), ".."))
 import numpy as np
-import loas
-import random
 import trimesh
-import threading
-import time
+import loas
 
 dt = 1/25 # Simulation time step
 I0 = np.diag((20,20,20)) # Satellite inertia tensor
