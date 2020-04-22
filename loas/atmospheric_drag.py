@@ -2,6 +2,7 @@ import numpy as np
 import loas
 import trimesh
 import random
+import math
 
 def torque(satellite, particle_rate, satellite_speed, viewer, mass_particle):
     bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
@@ -20,9 +21,11 @@ def torque(satellite, particle_rate, satellite_speed, viewer, mass_particle):
 
     for _ in range(nb_particles):
 
+        r = random.uniform(0, bounding_sphere_radius)
+        theta = random.uniform(0,2*math.pi)
         origin = loas.vector.tov(
-            random.uniform(-bounding_sphere_radius, bounding_sphere_radius),
-            random.uniform(-bounding_sphere_radius, bounding_sphere_radius),
+            r*math.cos(theta),
+            r*math.sin(theta),
             -2*bounding_sphere_radius
         )
 
