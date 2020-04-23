@@ -16,7 +16,7 @@ mesh.apply_scale(3) # rescale the model
 
 satellite = loas.Satellite( mesh, dt, I0 = I0 )
 viewer = loas.Viewer( satellite, 30 )
-drag_torque = loas.SparseDrag( satellite, 100, 1, 1, viewer )
+drag_torque = loas.SparseDrag( satellite, 100, 1, 1, viewer, 1 )
 satellite.addParasiteTorque( drag_torque )
 
 satellite.start()

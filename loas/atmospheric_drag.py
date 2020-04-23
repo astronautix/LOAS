@@ -7,13 +7,14 @@ import multiprocessing as mp
 
 class SparseDrag(loas.Torque):
 
-    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, viewer = None):
+    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, viewer = None, nb_processes = 1):
         super().__init__(satellite, viewer)
         self.speed = loas.vector.tov(0,0,satellite_speed)
         self.particle_mass = particle_mass
         self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.particle_rate = particle_density * satellite.dt*satellite_speed * math.pi*self.bounding_sphere_radius**2
-        self.viewer = None
+        self.nb_processes = nb_processes
+        self.viewer = viewer
 
     def getTorque(self):
         nb_particles = max(int(round(random.normalvariate(
@@ -23,25 +24,36 @@ class SparseDrag(loas.Torque):
 
         if self.viewer is not None:
             batch = loas.viewer.CustomBatch()
-
+        else:
+            batch = None
 
         q = mp.Queue()
 
-        ps = [mp.Process(target=self.test, args=(1250,'you', q)) for _ in range(4)]
-        for p in ps:
-            p.start()
-        torque  = loas.vector.tov(0,0,0)
+        if self.nb_processes >= 2:
+            nb_pending_particles = nb_particles
+            process_nb_particles = nb_particles // self.nb_processes + 1
+            processes = []
+            for no_p in range(self.nb_processes):
+                if no_p == self.nb_processes-1:
+                    process_nb_particles = nb_particles - (self.nb_processes-1)*process_nb_particles
 
-        for p in ps:
-            torquetemp = q.get()
-            print(torquetemp)
-            torque += torquetemp
+                p = mp.Process(
+                    target=self.rayTesting,
+                    args=(process_nb_particles, q, None)
+                )
+                processes.append(p)
+                p.start()
 
-        for p in ps:
-            p.join()
+            torque = loas.vector.tov(0,0,0)
+            for p in processes:
+                torque += q.get()
 
-        #self.test(500,'ou', q)
-        #torque = q.get()
+            for p in processes:
+                p.join()
+
+        else:
+            self.rayTesting(nb_particles, q, batch)
+            torque = q.get()
 
         if self.viewer is not None:
             batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
@@ -49,7 +61,7 @@ class SparseDrag(loas.Torque):
 
         return torque
 
-    def test(self, nb_particles, batch_name, queue):
+    def rayTesting(self, nb_particles, queue, batch = None):
         torque  = loas.vector.tov(0,0,0)
         for _ in range(nb_particles):
             r = self.bounding_sphere_radius*math.sqrt(random.random())
@@ -62,10 +74,10 @@ class SparseDrag(loas.Torque):
 
             location, _, _, momentum = Particle(origin, self.speed, self.particle_mass).getCollisionOnMesh(self.satellite)
 
-            if self.viewer is not None:
-                self.batch.add_line(origin[:,0], self.speed[:,0])
+            if batch is not None:
+                batch.add_line(origin[:,0], self.speed[:,0])
                 if location is not None:
-                    self.batch.add_pyramid(location[:,0])
+                    batch.add_pyramid(location[:,0])
 
             if location is not None:
                 torque += loas.vector.cross(location, momentum/self.satellite.dt)
