@@ -5,18 +5,18 @@ import random
 import math
 
 class SparseDrag(loas.Torque):
-    def __init__(self, satellite, particle_rate, satellite_speed, particle_mass, viewer = None):
+    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, viewer = None):
         super().__init__(satellite, viewer)
-        self.particle_rate = particle_rate
         self.speed = loas.vector.tov(0,0,satellite_speed)
         self.particle_mass = particle_mass
         self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
+        self.particle_rate = particle_density * satellite.dt*satellite_speed * math.pi*self.bounding_sphere_radius**2
 
     def getTorque(self):
-        nb_particles = max(round(random.normalvariate(
+        nb_particles = max(int(round(random.normalvariate(
             mu = self.particle_rate,
             sigma = (self.particle_rate)**(1/2)
-        )),0) # uniform distribution of particle in an infinite volume
+        ))),0) # uniform distribution of particle in an infinite volume
 
         torque = loas.vector.tov(0,0,0)
 
