@@ -127,14 +127,24 @@ class Satellite(Thread):
         Launches the simulation in a thread
         """
         self.running = True
+
+        frames = 0
+        time_frames = 0
         prevtime = time.time()
+
         while self.running:
-
+            t1 = time.time()
             self.getNextIteration()
+            t2 = time.time()
 
-            currtime = time.time()
-            deltatime = currtime - prevtime
-            prevtime = currtime
-            pause = max(0, self.dt - deltatime)
-            print(round(1/(pause + deltatime), 3), "/", round(1/self.dt), "FPS", end="\n")
+            deltat = t2 - t1
+            pause = max(0, self.dt - deltat)
+
             time.sleep(pause)
+
+            frames += 1
+            time_frames += deltat + pause
+            if time_frames > 1:
+                print(round(frames/time_frames, 3), "/", round(1/self.dt), "FPS    ", end="\r")
+                frames = 0
+                time_frames = 0
