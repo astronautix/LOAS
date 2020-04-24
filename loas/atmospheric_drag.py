@@ -15,7 +15,7 @@ def rayTestingWorker(bounding_sphere_radius, particle_mass, dt, speed, mesh, cre
 
         pending_particles, satellite_attitude, satellite_rot_speed, workers_running = workers_input_queue.get()
         if not workers_running:
-            break
+            return
 
         if create_batch_data_save:
             batch_data_save = []
@@ -76,12 +76,13 @@ class SparseDrag(loas.Torque):
             self.workers.append(worker)
 
     def stop(self):
-        self.workers_input_queue.put((
-            None,
-            None,
-            None,
-            True
-        ))
+        for _ in range(self.nb_workers):
+            self.workers_input_queue.put((
+                None,
+                None,
+                None,
+                False
+            ))
 
     def join(self):
         for worker in self.workers:
