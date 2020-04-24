@@ -97,10 +97,11 @@ class SparseDrag(loas.Torque):
             sigma = (self.particle_rate)**(1/2)
         ))),0) # uniform distribution of particle in an infinite volume
 
-        nb_particles = int(self.particle_rate) #testing
 
-        nb_part = nb_particles//self.nb_workers
-        for _ in range(self.nb_workers):
+        nb_part = round(nb_particles/self.nb_workers)
+        remaining_part = nb_particles - (self.nb_workers-1)*nb_part
+
+        for i in range(self.nb_workers):
             self.workers_input_queue.put((
                 nb_part,
                 self.satellite.Q,
