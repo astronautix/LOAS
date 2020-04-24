@@ -15,11 +15,15 @@ mesh.apply_translation(-(bounds[0] + bounds[1])/2) # center the satellite (the m
 mesh.apply_scale(3) # rescale the model
 
 satellite = loas.Satellite( mesh, dt, I0 = I0 )
-#viewer = loas.Viewer( satellite, 30 )
-drag_torque = loas.SparseDrag( satellite, 10000, 1, 1, 4)
+viewer = loas.Viewer( satellite, 30 )
+drag_torque = loas.SparseDrag( satellite, 10000, 1, 1, 4, viewer)
 satellite.addParasiteTorque( drag_torque )
 
+drag_torque.start()
 satellite.start()
-#viewer.run() # retuns only when viewer is closed
-#satellite.stop()
-#satellite.join()
+viewer.run() # retuns only when viewer is closed
+
+satellite.stop()
+drag_torque.stop()
+satellite.join()
+drag_torque.join()
