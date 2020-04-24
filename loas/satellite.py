@@ -136,5 +136,5 @@ class Satellite(Thread):
             deltatime = currtime - prevtime
             prevtime = currtime
             pause = max(0, self.dt - deltatime)
-            print(round(1/(pause + deltatime), 1), "/", round(1/self.dt), "FPS", end="\r")
+            print(round(1/(pause + deltatime), 3), "/", round(1/self.dt), "FPS", end="\n")
             time.sleep(pause)
