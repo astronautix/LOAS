@@ -6,7 +6,7 @@ import trimesh
 import loas
 
 dt = 1/25 # Simulation time step
-I0 = np.diag((1000,1000,1000)) # Satellite inertia tensor
+I0 = np.diag((20,20,20)) # Satellite inertia tensor
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./satellite.stl")
