@@ -6,7 +6,7 @@ import trimesh
 import loas
 
 dt = 1/25 # Simulation time step
-I0 = np.diag((20,20,20)) # Satellite inertia tensor
+I0 = np.diag((200,200,200)) # Satellite inertia tensor
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./satellite.stl")
@@ -16,7 +16,7 @@ mesh.apply_scale(3) # rescale the model
 
 satellite = loas.Satellite( mesh, dt, I0 = I0 )
 viewer = loas.Viewer( satellite, 30 )
-drag_torque = loas.SparseDrag( satellite, 100, 1, 1, 4, viewer)
+drag_torque = loas.SparseDrag( satellite, 1000, 1, 1, 6, viewer)
 satellite.addParasiteTorque( drag_torque )
 
 drag_torque.start()
