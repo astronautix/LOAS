@@ -11,18 +11,31 @@ import trimesh
 pyglet.options['graphics_vbo'] = 0
 
 class CustomBatch(pyglet.graphics.Batch):
-
     """
     Extends pyglet's Batch class for our purpose (makes simple to display some objects)
     """
 
     def __init__(self, gl_lightning=False, attitude_getter=None):
+        """
+        :param gl_lightning: If GL_LIGHTING has to be enabled or not during drawing
+        :type gl_lightning: bool
+        :param attitude_getter: A getter that sets the orientation of the batch. If set to None, the batch will be static.
+        :type attitude_getter: function () -> loas.Quaternion
+        """
+
         super().__init__()
         self.getQ = attitude_getter
         self.gl_lightning = gl_lightning
         self.hidden = False
 
     def add_mesh(self, mesh):
+        """
+        Add mesh to the batch
+
+        :param mesh: The trimesh instance that has to be added to the batch
+        :type mesh: trimesh.Trimesh
+        """
+
         self.add_indexed(
             *trimesh.rendering.mesh_to_vertexlist( mesh )
         )
@@ -66,7 +79,7 @@ class CustomBatch(pyglet.graphics.Batch):
 
         :param pos: Position of the pyramid
         :type pos: (3, float)
-        :parma size: Size of the pyramid
+        :param size: Size of the pyramid
         :type size: float
         :param color: RGB color of the pyramid
         :type color: (3,) float
@@ -93,9 +106,17 @@ class CustomBatch(pyglet.graphics.Batch):
         )
 
     def hide(self):
+        """
+        Disables draw method of the instance, the object will disappear at the next frame
+        """
+
         self.hidden = True
 
     def draw(self):
+        """
+        Wrapper of pyglet batch draw() method. Sets the gl_lightning (if needed), and change the orientation.
+        """
+
         if self.hidden:
             return
         glPushMatrix() # saves the current projection matrix
@@ -220,11 +241,33 @@ class Viewer(pyglet.window.Window):
             self.cameraPos['dist'] += 0.3
 
     def add_batch(self, batch):
+        """
+        Add a batch to the scene. If you want to dynamically update the batch (e.g. hide it, or add new elements to it) you have to keep a save of the instance, you are not able to recover it from the list of batches.
+
+        :param batch: Batch to add
+        :type batch: loas.viewer.CustomBatch
+        """
+
         self.batches.append(batch)
 
     def set_named_batch(self, name, batch):
+        """
+        Handy way to display dynamic batches from the outside of the class.
+
+        Every batch has a name (it is the key of the batch), and calling this method will override the exisitng batch of the same name with the newly provided one (if exisiting), otherwise it will add it.
+
+        :param name: Name to give to the batch
+        :type name: str
+        :param batch: Batch to add
+        :type batch: loas.viewer.CustomBatch
+        """
+
         self.named_batches[name] = batch
 
     def run(self):
+        """
+        Launches the viewer
+        """
+
         pyglet.clock.schedule_interval(self.update, 1/self.fps)
         pyglet.app.run()

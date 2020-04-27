@@ -11,6 +11,8 @@ Welcome to loas's documentation!
   api/satellite
   api/quaternion
   api/atmospheric_drag
+  api/torque
+  api/vector
   :caption: API Reference
 
 Indices and tables
