@@ -23,7 +23,8 @@ class Satellite(Thread):
         B0 = np.array([[0.],[0.],[0.]]),
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
-        Q0 = loas.Quaternion(1,0,0,0)
+        Q0 = loas.Quaternion(1,0,0,0),
+        callback = None
     ):
         """
         :param mesh: Mesh of the satellite
@@ -44,6 +45,8 @@ class Satellite(Thread):
         :type L0: (3,1) numpy array
         :param Q0: Initial attitude of the satellite
         :type Q0: (3,1) numpy array
+        :param callback: Callback called at each iteration
+        :type callback: function (loas.Satellite) -> None
         """
         Thread.__init__(self)
         self.t = 0 #temps écoulé
@@ -55,9 +58,10 @@ class Satellite(Thread):
         self.J = J0 #Moment d'inertie des RI
         self.B = B0 #Vecteur champ magnétique environnant, exprimé dans Rr
         self.I = I0 #Tenseur d'inertie du satellite exprimé dans Rv
-        self.running = False,
+        self.running = False
         self.mesh = mesh
         self.parasite_torques = []
+        self.callback = callback
 
     def dQ(self): #renvoie la dérivée du quaternion
         """
@@ -134,7 +138,11 @@ class Satellite(Thread):
 
         while self.running:
             t1 = time.time()
+
             self.getNextIteration()
+            if self.callback is not None:
+                self.callback(self)
+
             t2 = time.time()
 
             deltat = t2 - t1
