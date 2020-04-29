@@ -98,41 +98,44 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
             batch_data_save = None
 
         dir_sat = sat_Q.R2V(speed)[:,0]
-        torque  = loas.vector.tov(0,0,0)
-        for _ in range(pending_particles):
 
+        def _getRandomOrigin():
             r = bounding_sphere_radius*math.sqrt(random.random())
             theta = 2*math.pi*random.random()
-            origin = (
+            return (
                 r*math.cos(theta),
                 r*math.sin(theta),
                 -2*bounding_sphere_radius
             )
 
-            origin_sat = sat_Q.R2V(loas.vector.tov(*origin))[:,0]
+        origins = [_getRandomOrigin() for _ in range(pending_particles)]
+        origins_sat = np.array([sat_Q.R2V(loas.vector.tov(*origin))[:,0] for origin in origins])
+        locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
+            ray_origins=origins_sat,
+            ray_directions=[dir_sat]*pending_particles
+        )
 
-            locations, index_ray, index_tri = sat_mesh.ray.intersects_location(
-                ray_origins=[origin_sat],
-                ray_directions=[dir_sat]
-            )
+        #filter only for closest point
+        locations_filtered = {}
+        for index, location in enumerate(locations):
+            index_tri = indexes_tri[index]
+            index_ray = indexes_ray[index]
+            origin_sat = origins_sat[index_ray]
+            origin = origins[index_ray]
+            dist = (origin_sat[0] - location[0])**2 + (origin_sat[1] - location[1])**2 + (origin_sat[2] - location[2])**2
 
-            print(index_ray)
-            return
+            if not index_ray in locations_filtered:
+                locations_filtered[index_ray] = (location, index_tri, origin, dist)
 
-            if len(locations) == 0:
-                batch_data_save.append((origin, None))
-                continue
+            elif locations_filtered[index_ray][3] > dist:
+                locations_filtered[index_ray] = (location, index_tri, origin, dist)
 
-            dists = np.array([
-                (origin_sat[0] - location[0])**2 +
-                (origin_sat[1] - location[1])**2 +
-                (origin_sat[2] - location[2])**2
-                for location in locations
-            ])
+        # process torque given by actual hit point
+        torque  = loas.vector.tov(0,0,0)
+        for location_sat, index_tri, origin, _ in locations_filtered.values():
 
-            index_collision = np.argmin(dists)
-            location = sat_Q.V2R(loas.vector.tov(*locations[index_collision]))
-            normal = sat_Q.V2R(loas.vector.tov(*sat_mesh.face_normals[index_tri[index_collision]]))
+            location = sat_Q.V2R(loas.vector.tov(*location_sat))
+            normal = sat_Q.V2R(loas.vector.tov(*sat_mesh.face_normals[index_tri]))
 
             rel_speed = speed - loas.vector.cross(sat_W, location)
 
