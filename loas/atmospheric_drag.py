@@ -56,7 +56,7 @@ def _getCollisionOnMesh(origin, mass, speed, sat_mesh, sat_Q, sat_W):
     return location, normal, rel_speed, momentum
 
 
-def _rayTestingWorker(bounding_sphere_radius, particle_mass, dt, speed, mesh, create_batch_data_save, workers_input_queue, workers_output_queue):
+def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, create_batch_data_save, workers_input_queue, workers_output_queue):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
 
@@ -65,14 +65,14 @@ def _rayTestingWorker(bounding_sphere_radius, particle_mass, dt, speed, mesh, cr
 
     :param bounding_sphere_radius: Radius of the bounding sphere of the saellite, i.e. the sphere that entirely includes the satellite. It defines the radius of thje circle in witch it is needed to generate particles
     :type bounding_sphere_radius: float
-    :param particle_mass: Mass of each particles
-    :type particle_mass: float
+    :param part_mass: Mass of each particles
+    :type part_mass: float
     :param dt: Time step of the simulation, i.e. satellite.dt
     :type dt: float
     :param speed: Relative speed of the satellite in the fluid. Can be calculated from the orbital parameters
     :type speed: float
-    :param mesh: Satellite's mesh
-    :type mesh: trimesh.Trimesh
+    :param sat_mesh: Satellite's mesh
+    :type sat_mesh: trimesh.Trimesh
     :param create_batch_data_save: if set to true, the worker will output at each iteration a list containing the result of every particle simultation so that it can be worked into a batch and printed on the pyglet's window.
     :type create_batch_data_save: bool
     :param workers_input_queue: Queue which is used to pass parameters to the worker
@@ -88,7 +88,7 @@ def _rayTestingWorker(bounding_sphere_radius, particle_mass, dt, speed, mesh, cr
 
     while workers_running:
 
-        pending_particles, satellite_attitude, satellite_rot_speed, workers_running = workers_input_queue.get()
+        pending_particles, sat_Q, sat_W, workers_running = workers_input_queue.get()
         if not workers_running:
             return
 
@@ -97,21 +97,53 @@ def _rayTestingWorker(bounding_sphere_radius, particle_mass, dt, speed, mesh, cr
         else:
             batch_data_save = None
 
+        dir_sat = sat_Q.R2V(speed)[:,0]
         torque  = loas.vector.tov(0,0,0)
         for _ in range(pending_particles):
 
             r = bounding_sphere_radius*math.sqrt(random.random())
             theta = 2*math.pi*random.random()
-            origin = loas.vector.tov(
+            origin = (
                 r*math.cos(theta),
                 r*math.sin(theta),
                 -2*bounding_sphere_radius
             )
 
-            location, _, _, momentum = _getCollisionOnMesh(origin, particle_mass, speed, mesh, satellite_attitude, satellite_rot_speed)
+            origin_sat = sat_Q.R2V(loas.vector.tov(*origin))[:,0]
 
-            if location is not None:
-                torque += loas.vector.cross(location, momentum/dt)
+            locations, index_ray, index_tri = sat_mesh.ray.intersects_location(
+                ray_origins=[origin_sat],
+                ray_directions=[dir_sat]
+            )
+
+            print(index_ray)
+            return
+
+            if len(locations) == 0:
+                batch_data_save.append((origin, None))
+                continue
+
+            dists = np.array([
+                (origin_sat[0] - location[0])**2 +
+                (origin_sat[1] - location[1])**2 +
+                (origin_sat[2] - location[2])**2
+                for location in locations
+            ])
+
+            index_collision = np.argmin(dists)
+            location = sat_Q.V2R(loas.vector.tov(*locations[index_collision]))
+            normal = sat_Q.V2R(loas.vector.tov(*sat_mesh.face_normals[index_tri[index_collision]]))
+
+            rel_speed = speed - loas.vector.cross(sat_W, location)
+
+            normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
+            if normal_rel_speed > 0:
+                normal_rel_speed = 0
+            normal_rel_speed_vec = normal_rel_speed * normal / np.linalg.norm(normal)
+
+            momentum = 2*part_mass*normal_rel_speed_vec # elastic collision
+
+            torque += loas.vector.cross(location, momentum/dt)
 
             if create_batch_data_save:
                 batch_data_save.append((origin, location))
@@ -226,7 +258,7 @@ class SparseDrag(loas.Torque):
 
             if batch_data_save is not None:
                 for origin, location in batch_data_save:
-                    batch.add_line(origin[:,0], self.speed[:,0])
+                    batch.add_line(origin, self.speed[:,0])
                     if location is not None:
                         batch.add_pyramid(location[:,0])
 
