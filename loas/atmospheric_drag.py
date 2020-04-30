@@ -267,6 +267,6 @@ class SparseDrag(loas.Torque):
 
         if self.viewer is not None:
             batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
-            self.viewer.set_named_batch('main_drag', batch)
+            self.viewer.base.set_batch('main_drag', batch)
 
         return torque

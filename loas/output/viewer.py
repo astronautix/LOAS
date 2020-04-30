@@ -1,14 +1,165 @@
 import ctypes
 import os
 import numpy as np
-import loas
 import pyglet
 from pyglet.gl import *
 from ctypes import *
 from math import sin, cos
 import trimesh
 
+from .output import Output
+from ..quaternion import Quaternion
+
 pyglet.options['graphics_vbo'] = 0
+
+
+class Viewer(Output):
+    """
+    loas.output.Output inheriting pyglet wrapper
+    """
+
+    def __init__(self, mesh, draw_frames = True):
+        super().__init__()
+        self.base = BaseViewer()
+
+        self.draw_frames = draw_frames
+        if draw_frames:
+            tmp = CustomBatch()
+            tmp.add_reference_axis(origin=(-3,0,0))
+            self.base.set_batch("static_frame", tmp)
+
+            tmp = CustomBatch()
+            tmp.add_reference_axis()
+            self.base.set_batch("vehicle_frame", tmp)
+
+        tmp = CustomBatch( gl_lightning = True )
+        tmp.add_mesh(mesh)
+        self.base.set_batch("vehicle_mesh", tmp)
+
+    def update(self, **kwargs):
+        Q = kwargs['sat_attitude']
+        self.base.get_batch('vehicle_mesh').set_Q(Q)
+        if self.draw_frames:
+            self.base.get_batch('vehicle_frame').set_Q(Q)
+
+    def run(self):
+        self.base.run()
+
+
+class BaseViewer(pyglet.window.Window):
+    """
+    Extends pyglet Window class, handles 3D graphics
+
+    Can be used directly as loas.Viewer
+
+    Inspired by https://github.com/mikedh/trimesh/blob/master/trimesh/viewer/windowed.py
+    """
+
+    def __init__(self, fps=30):
+        """
+        :param satellite: The used satellite instance for the simulation
+        :type satellite: loas.Satellite
+        :param fps: Frames per second
+        :type fps: int
+        """
+
+        self.fps = fps
+        self.rotation = 0
+        self.lightfv = ctypes.c_float * 4
+        self.cameraPos = {
+            "theta": 0,
+            "phi": 0,
+            "dist": 10
+        }
+        self.keyboard = pyglet.window.key.KeyStateHandler()
+
+        self.batches = {}
+
+    def run(self):
+        """
+        Launches the viewer
+        """
+        super().__init__(700,700,resizable=True) #create the window
+        self.push_handlers(self.keyboard)
+        glClearColor(0, 0.3, 0.5, 0)
+
+        pyglet.clock.schedule_interval(self.update, 1/self.fps)
+        pyglet.app.run()
+
+    def set_batch(self, name, batch):
+        """
+        Handy way to display dynamic batches from the outside of the class.
+
+        Every batch has a name (it is the key of the batch), and calling this method will override the exisitng batch of the same name with the newly provided one (if exisiting), otherwise it will add it.
+
+        :param name: Name to give to the batch
+        :type name: str
+        :param batch: Batch to add
+        :type batch: loas.output.viewer.CustomBatch
+        """
+
+        self.batches[name] = batch
+
+    def get_batch(self, name):
+        if name not in self.batches:
+            return None
+        else:
+            return self.batches[name]
+
+    def on_resize(self, width, height):
+        """
+        Required by pyglet
+        """
+        viewport_width, viewport_height = self.get_framebuffer_size()
+        glViewport(0, 0, viewport_width, viewport_height)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(60., float(width)/height, 1., 1000.)
+        glMatrixMode(GL_MODELVIEW)
+        return True
+
+    def on_draw(self):
+        """
+        Required by pyglet, defines how to draw the visuals
+        """
+        self.clear()
+        glLoadIdentity()
+        glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
+        glEnable(GL_LIGHT0)
+        glEnable(GL_DEPTH_TEST)
+
+        # set camera position
+        gluLookAt(
+            self.cameraPos['dist']*cos(self.cameraPos["phi"])*sin(self.cameraPos['theta']),
+            self.cameraPos['dist']*sin(self.cameraPos["phi"]),
+            self.cameraPos['dist']*cos(self.cameraPos["phi"])*cos(self.cameraPos['theta']),
+            0, 0, 0, 0, 1, 0
+        )
+
+        for batch in self.batches.values():
+            batch.draw()
+
+    def update(self, dt):
+        """
+        Called at every new frame, is used to update visual values (e.g. camera position)
+        """
+
+        self.batch_buffer = []
+
+        if self.keyboard[pyglet.window.key.UP]:
+            self.cameraPos['phi'] += 0.08
+        if self.keyboard[pyglet.window.key.DOWN]:
+            self.cameraPos['phi'] -= 0.08
+        if self.keyboard[pyglet.window.key.LEFT]:
+            self.cameraPos['theta'] -= 0.08
+        if self.keyboard[pyglet.window.key.RIGHT]:
+            self.cameraPos['theta'] += 0.08
+        if self.keyboard[pyglet.window.key.NUM_ADD]:
+            self.cameraPos['dist'] -= 0.3
+        if self.keyboard[pyglet.window.key.NUM_SUBTRACT]:
+            self.cameraPos['dist'] += 0.3
+
+
 
 class CustomBatch(pyglet.graphics.Batch):
     """
@@ -24,9 +175,12 @@ class CustomBatch(pyglet.graphics.Batch):
         """
 
         super().__init__()
-        self.getQ = attitude_getter
+        self.Q = Quaternion(1,0,0,0)
         self.gl_lightning = gl_lightning
         self.hidden = False
+
+    def set_Q(self, Q):
+        self.Q = Q
 
     def add_mesh(self, mesh):
         """
@@ -119,155 +273,12 @@ class CustomBatch(pyglet.graphics.Batch):
 
         if self.hidden:
             return
-        glPushMatrix() # saves the current projection matrix
         if self.gl_lightning:
             glEnable(GL_LIGHTING)
         else:
             glDisable(GL_LIGHTING)
-        if self.getQ is not None:
-            Q = self.getQ()
-            glRotatef(Q.angle()*180/3.14, *Q.axis())
+
+        glPushMatrix() # saves the current projection matrix
+        glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
         super().draw()
         glPopMatrix() #uses back initial projection matrix (revert rotation)
-
-
-class Viewer(pyglet.window.Window):
-    """
-    Extends pyglet Window class, handles 3D graphics
-
-    Can be used directly as loas.Viewer
-
-    Inspired by https://github.com/mikedh/trimesh/blob/master/trimesh/viewer/windowed.py
-    """
-
-    def __init__(self, satellite, fps=30):
-        """
-        :param satellite: The used satellite instance for the simulation
-        :type satellite: loas.Satellite
-        :param fps: Frames per second
-        :type fps: int
-        """
-        super().__init__(700,700,resizable=True)
-        self.satellite = satellite
-        self.fps = fps
-        self.rotation = 0
-        self.lightfv = ctypes.c_float * 4
-        self.cameraPos = {
-            "theta": 0,
-            "phi": 0,
-            "dist": 10
-        }
-        self.keyboard = pyglet.window.key.KeyStateHandler()
-        self.push_handlers(self.keyboard)
-
-        self.batch_buffer = []
-
-        self.batches = []
-
-        self.named_batches = {}
-
-        tmp = CustomBatch()
-        tmp.add_reference_axis(origin=(-3,0,0))
-        self.batches.append(tmp)
-        tmp = CustomBatch(
-            attitude_getter = lambda: self.satellite.Q
-        )
-        tmp.add_reference_axis()
-        self.batches.append(tmp)
-        tmp = CustomBatch(
-            attitude_getter = lambda: self.satellite.Q,
-            gl_lightning = True
-        )
-        tmp.add_mesh(satellite.mesh)
-        self.batches.append(tmp)
-
-        glClearColor(0, 0.3, 0.5, 0)
-
-    def on_resize(self, width, height):
-        """
-        Required by pyglet
-        """
-        viewport_width, viewport_height = self.get_framebuffer_size()
-        glViewport(0, 0, viewport_width, viewport_height)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(60., float(width)/height, 1., 1000.)
-        glMatrixMode(GL_MODELVIEW)
-        return True
-
-
-    def on_draw(self):
-        """
-        Required by pyglet, defines how to draw the visuals
-        """
-        self.clear()
-        glLoadIdentity()
-        glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
-        glEnable(GL_LIGHT0)
-        glEnable(GL_DEPTH_TEST)
-
-        # set camera position
-        gluLookAt(
-            self.cameraPos['dist']*cos(self.cameraPos["phi"])*sin(self.cameraPos['theta']),
-            self.cameraPos['dist']*sin(self.cameraPos["phi"]),
-            self.cameraPos['dist']*cos(self.cameraPos["phi"])*cos(self.cameraPos['theta']),
-            0, 0, 0, 0, 1, 0
-        )
-
-        for batch in self.batches:
-            batch.draw()
-
-        for batch in self.named_batches.values():
-            batch.draw()
-
-    def update(self, dt):
-        """
-        Called at every new frame, is used to update visual values (e.g. camera position)
-        """
-
-        self.batch_buffer = []
-
-        if self.keyboard[pyglet.window.key.UP]:
-            self.cameraPos['phi'] += 0.08
-        if self.keyboard[pyglet.window.key.DOWN]:
-            self.cameraPos['phi'] -= 0.08
-        if self.keyboard[pyglet.window.key.LEFT]:
-            self.cameraPos['theta'] -= 0.08
-        if self.keyboard[pyglet.window.key.RIGHT]:
-            self.cameraPos['theta'] += 0.08
-        if self.keyboard[pyglet.window.key.NUM_ADD]:
-            self.cameraPos['dist'] -= 0.3
-        if self.keyboard[pyglet.window.key.NUM_SUBTRACT]:
-            self.cameraPos['dist'] += 0.3
-
-    def add_batch(self, batch):
-        """
-        Add a batch to the scene. If you want to dynamically update the batch (e.g. hide it, or add new elements to it) you have to keep a save of the instance, you are not able to recover it from the list of batches.
-
-        :param batch: Batch to add
-        :type batch: loas.output.viewer.CustomBatch
-        """
-
-        self.batches.append(batch)
-
-    def set_named_batch(self, name, batch):
-        """
-        Handy way to display dynamic batches from the outside of the class.
-
-        Every batch has a name (it is the key of the batch), and calling this method will override the exisitng batch of the same name with the newly provided one (if exisiting), otherwise it will add it.
-
-        :param name: Name to give to the batch
-        :type name: str
-        :param batch: Batch to add
-        :type batch: loas.output.viewer.CustomBatch
-        """
-
-        self.named_batches[name] = batch
-
-    def run(self):
-        """
-        Launches the viewer
-        """
-
-        pyglet.clock.schedule_interval(self.update, 1/self.fps)
-        pyglet.app.run()

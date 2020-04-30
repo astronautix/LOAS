@@ -24,7 +24,7 @@ class Satellite(Thread):
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
         Q0 = loas.Quaternion(1,0,0,0),
-        callback = None
+        output = None
     ):
         """
         :param mesh: Mesh of the satellite
@@ -45,15 +45,15 @@ class Satellite(Thread):
         :type L0: (3,1) numpy array
         :param Q0: Initial attitude of the satellite
         :type Q0: (3,1) numpy array
-        :param callback: Callback called at each iteration
-        :type callback: function (loas.Satellite) -> None
+        :param output: loas.output.Output inheriting class' instance (e.g. Viewer). Defines how to output the simu
+        :type callback: loas.output.Output inherited class' instance
         """
         Thread.__init__(self)
         self.t = 0 #temps écoulé
         self.dt = dt
         self.Q = Q0 #quaternion de rotation de Rv par rapport à Rr
         self.L = L0 #Moment cinétique du satellite dans Rr
-        self.M = M0 # moment magnétique des MC exprimé dans # REVIEW:
+        self.M = M0 # moment magnétique des MC exprimé dans Rv
         self.dw = dw0 #vecteur accélération angulaire des RI exprimé dans Rv
         self.J = J0 #Moment d'inertie des RI
         self.B = B0 #Vecteur champ magnétique environnant, exprimé dans Rr
@@ -61,7 +61,7 @@ class Satellite(Thread):
         self.running = False
         self.mesh = mesh
         self.parasite_torques = []
-        self.callback = callback
+        self.output = output
 
     def dQ(self): #renvoie la dérivée du quaternion
         """
@@ -140,8 +140,10 @@ class Satellite(Thread):
             t1 = time.time()
 
             self.getNextIteration()
-            if self.callback is not None:
-                self.callback(self)
+            if self.output is not None:
+                self.output.update(
+                    sat_attitude = self.Q
+                )
 
             t2 = time.time()
 
