@@ -170,7 +170,7 @@ class SparseDrag(loas.Torque):
         :param nb_workers: Number of parallels workers (thus threads) that are launched for the simulation
         :type nb_workers: int
         :param viewer: Viewer instance. Will be used to print particle impact on mesh and computed torque. If set to None (or unset), nothing will be displayed.
-        :type viewer: loas.Viewer
+        :type viewer: loas.output.Viewer
         """
 
         super().__init__(satellite, viewer)
@@ -235,7 +235,7 @@ class SparseDrag(loas.Torque):
             raise RuntimeError("No workers are running! Call start() method beforehand")
 
         if self.viewer is not None:
-            batch = loas.viewer.CustomBatch()
+            batch = loas.output.viewer.CustomBatch()
 
         nb_particles = max(int(round(random.normalvariate(
             mu = self.particle_rate,

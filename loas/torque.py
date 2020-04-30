@@ -11,7 +11,7 @@ class Torque(ABC):
         :param satellite: Satellite instance
         :type satellite: loas.Satellite
         :param viewer: Viewer instance. If set to None (or unset), nothing will be displayed.
-        :type viewer: loas.Viewer
+        :type viewer: loas.output.Viewer
         """
         super().__init__()
         self.satellite = satellite

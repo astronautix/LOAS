@@ -245,7 +245,7 @@ class Viewer(pyglet.window.Window):
         Add a batch to the scene. If you want to dynamically update the batch (e.g. hide it, or add new elements to it) you have to keep a save of the instance, you are not able to recover it from the list of batches.
 
         :param batch: Batch to add
-        :type batch: loas.viewer.CustomBatch
+        :type batch: loas.output.viewer.CustomBatch
         """
 
         self.batches.append(batch)
@@ -259,7 +259,7 @@ class Viewer(pyglet.window.Window):
         :param name: Name to give to the batch
         :type name: str
         :param batch: Batch to add
-        :type batch: loas.viewer.CustomBatch
+        :type batch: loas.output.viewer.CustomBatch
         """
 
         self.named_batches[name] = batch

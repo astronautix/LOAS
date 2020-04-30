@@ -16,7 +16,7 @@ def showImpactOnSatellite(satellite, particles, viewer):
     """
 
     while satellite.running:
-        batch = loas.viewer.CustomBatch()
+        batch = loas.output.viewer.CustomBatch()
         for particle in particles:
             batch.add_line(particle.origin[:,0], particle.speed[:,0])
             location, normal, rel_speed, momentum = particle.getCollisionOnMesh(satellite)
@@ -53,7 +53,7 @@ mesh.apply_scale(.03)
 
 sat = loas.Satellite( mesh, dt, dw0 = np.array([[1.],[0.],[0.]]), I0 = I0 )
 
-viewer = loas.Viewer( sat, 30 )
+viewer = loas.output.Viewer( sat, 30 )
 
 sat.start()
 threading.Thread(
