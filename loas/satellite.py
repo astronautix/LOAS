@@ -63,6 +63,10 @@ class Satellite(Thread):
         self.parasite_torques = []
         self.output = output
 
+    @property
+    def W(self):
+        return self.Q.V2R(np.linalg.inv(self.I) @ self.Q.R2V(self.L))
+
     def _dL(self): #renvoie la dérivée du moment cinétique avec le th du moment cinétique
         """
         Gives the first derivative of the angular momentum (uses dynamic equations)
@@ -76,7 +80,7 @@ class Satellite(Thread):
         Update the instance at the next simulation iteration
         """
         self.L += self._dL()*self.dt #calcul du nouveau moment cinétique
-        Qnump = self.Q.vec() + self.Q.derivative(self.getW())*self.dt #calcul de la nouvelle orientation
+        Qnump = self.Q.vec() + self.Q.derivative(self.W)*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
         self.Q = loas.Quaternion(*Qnump[:,0])
         self.t += self.dt
@@ -84,27 +88,6 @@ class Satellite(Thread):
 
     def addParasiteTorque(self,parasite_torque):
         self.parasite_torques.append(parasite_torque)
-
-    def setM(self, M):
-        """
-        Magnetorquer moment setter
-        """
-        self.M = M
-
-    def setDW(self, dw):
-        """
-        Angular acceleration of reaction wheel setter
-        """
-        self.dw = dw
-
-    def setB(self, B):
-        """
-        External magnetic field setter
-        """
-        self.B = B
-
-    def getW(self):
-        return self.Q.V2R(np.linalg.inv(self.I) @ self.Q.R2V(self.L))
 
     def stop(self):
         """

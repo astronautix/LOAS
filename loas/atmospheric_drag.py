@@ -250,7 +250,7 @@ class SparseDrag(loas.Torque):
             self.workers_input_queue.put((
                 nb_part,
                 self.satellite.Q,
-                self.satellite.getW(),
+                self.satellite.W,
                 True
             ))
 

@@ -14,7 +14,7 @@ class Plotter(Output):
     def update(self, **kwargs):
         if 'satellite' in kwargs:
             self.ts.append(self.ts[-1]+kwargs['satellite'].dt)
-            self.ws.append(np.linalg.norm(kwargs['satellite'].getW()))
+            self.ws.append(np.linalg.norm(kwargs['satellite'].W))
 
     def _animate(self, i):
         plt.clf()
