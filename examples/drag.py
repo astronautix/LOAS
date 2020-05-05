@@ -21,6 +21,7 @@ satellite.addParasiteTorque( drag_torque )
 
 drag_torque.start() # starts the workers that computes the drag torque
 satellite.start() # starts the satellite's simulation
+
 viewer.run() # retuns only when viewer is closed
 
 satellite.stop() # stops the satellite

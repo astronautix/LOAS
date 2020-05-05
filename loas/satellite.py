@@ -142,7 +142,7 @@ class Satellite(Thread):
             self.getNextIteration()
             if self.output is not None:
                 self.output.update(
-                    sat_attitude = self.Q
+                    satellite = self
                 )
 
             t2 = time.time()

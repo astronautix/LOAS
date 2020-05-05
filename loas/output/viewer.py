@@ -37,10 +37,10 @@ class Viewer(Output):
         self.base.set_batch("vehicle_mesh", tmp)
 
     def update(self, **kwargs):
-        Q = kwargs['sat_attitude']
-        self.base.get_batch('vehicle_mesh').set_Q(Q)
-        if self.draw_frames:
-            self.base.get_batch('vehicle_frame').set_Q(Q)
+        if 'satellite' in kwargs:
+            self.base.get_batch('vehicle_mesh').set_Q(kwargs['satellite'].Q)
+            if self.draw_frames:
+                self.base.get_batch('vehicle_frame').set_Q(kwargs['satellite'].Q)
 
     def run(self):
         self.base.run()
