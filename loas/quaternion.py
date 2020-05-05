@@ -87,6 +87,15 @@ class Quaternion:
         else:
             raise IndexError("Accessing a non-existing value of a 4 elements vector")
 
+    def derivative(self, W):
+        expQ = np.array([
+            [-self.b, -self.c, -self.d],
+            [ self.a,  self.d, -self.c],
+            [-self.d,  self.a,  self.b],
+            [ self.c, -self.b,  self.a]
+        ])
+        return expQ @ W / 2
+
     def axis(self):
         """
         Return the normalized rotation axis of the quaternion

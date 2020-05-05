@@ -63,21 +63,7 @@ class Satellite(Thread):
         self.parasite_torques = []
         self.output = output
 
-    def dQ(self): #renvoie la dérivée du quaternion
-        """
-        Gives the first derivative of the attitude quaternion
-
-        :param W: Angular speed of the satellite
-        :type W: (3,1) numpy array
-        """
-        qw,qx,qy,qz = self.Q[0],self.Q[1],self.Q[2],self.Q[3]
-        expQ = np.array([[-qx, -qy, -qz],
-                         [ qw,  qz, -qy],
-                         [-qz,  qw,  qx],
-                         [ qy, -qx,  qw]])
-        return expQ @ self.getW() / 2
-
-    def dL(self): #renvoie la dérivée du moment cinétique avec le th du moment cinétique
+    def _dL(self): #renvoie la dérivée du moment cinétique avec le th du moment cinétique
         """
         Gives the first derivative of the angular momentum (uses dynamic equations)
         """
@@ -85,12 +71,12 @@ class Satellite(Thread):
         C_Rr = self.Q.V2R(C_Rv_no_parasite) + sum([torque.getTorque() for torque in self.parasite_torques])
         return C_Rr
 
-    def getNextIteration(self):
+    def _getNextIteration(self):
         """
         Update the instance at the next simulation iteration
         """
-        self.L += self.dL()*self.dt #calcul du nouveau moment cinétique
-        Qnump = self.Q.vec() + self.dQ()*self.dt #calcul de la nouvelle orientation
+        self.L += self._dL()*self.dt #calcul du nouveau moment cinétique
+        Qnump = self.Q.vec() + self.Q.derivative(self.getW())*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
         self.Q = loas.Quaternion(*Qnump[:,0])
         self.t += self.dt
@@ -139,7 +125,7 @@ class Satellite(Thread):
         while self.running:
             t1 = time.time()
 
-            self.getNextIteration()
+            self._getNextIteration()
             if self.output is not None:
                 self.output.update(
                     satellite = self
