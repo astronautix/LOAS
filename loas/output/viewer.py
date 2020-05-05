@@ -7,8 +7,8 @@ from ctypes import *
 from math import sin, cos
 import trimesh
 
+import loas
 from .output import Output
-from ..quaternion import Quaternion
 
 pyglet.options['graphics_vbo'] = 0
 
@@ -171,11 +171,11 @@ class CustomBatch(pyglet.graphics.Batch):
         :param gl_lightning: If GL_LIGHTING has to be enabled or not during drawing
         :type gl_lightning: bool
         :param attitude_getter: A getter that sets the orientation of the batch. If set to None, the batch will be static.
-        :type attitude_getter: function () -> loas.Quaternion
+        :type attitude_getter: function () -> loas.utils.Quaternion
         """
 
         super().__init__()
-        self.Q = Quaternion(1,0,0,0)
+        self.Q = loas.utils.Quaternion(1,0,0,0)
         self.gl_lightning = gl_lightning
         self.hidden = False
 

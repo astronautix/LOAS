@@ -1,10 +1,11 @@
 import numpy as np
-import loas
 import trimesh
 import random
 import math
 import multiprocessing as mp
 
+import loas
+from .torque import Torque
 
 def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, create_batch_data_save, workers_input_queue, workers_output_queue):
     """
@@ -32,8 +33,8 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
     """
 
 
-    satellite_attitude = loas.Quaternion(1,0,0,0)
-    satellite_rot_speed = loas.vector.tov(0,0,0)
+    satellite_attitude = loas.utils.Quaternion(1,0,0,0)
+    satellite_rot_speed = loas.utils.vector.tov(0,0,0)
     workers_running = True
 
     while workers_running:
@@ -59,7 +60,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
             )
 
         origins = [_getRandomOrigin() for _ in range(pending_particles)]
-        origins_sat = np.array([sat_Q.R2V(loas.vector.tov(*origin))[:,0] for origin in origins])
+        origins_sat = np.array([sat_Q.R2V(loas.utils.vector.tov(*origin))[:,0] for origin in origins])
         locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
             ray_origins=origins_sat,
             ray_directions=[dir_sat]*pending_particles
@@ -81,13 +82,13 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
                 locations_filtered[index_ray] = (location, index_tri, origin, dist)
 
         # process torque given by actual hit point
-        torque  = loas.vector.tov(0,0,0)
+        torque  = loas.utils.vector.tov(0,0,0)
         for location_sat, index_tri, origin, _ in locations_filtered.values():
 
-            location = sat_Q.V2R(loas.vector.tov(*location_sat))
-            normal = sat_Q.V2R(loas.vector.tov(*sat_mesh.face_normals[index_tri]))
+            location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
+            normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
 
-            rel_speed = speed - loas.vector.cross(sat_W, location)
+            rel_speed = speed - loas.utils.vector.cross(sat_W, location)
 
             normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
             if normal_rel_speed > 0:
@@ -96,7 +97,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
 
             momentum = 2*part_mass*normal_rel_speed_vec # elastic collision
 
-            torque += loas.vector.cross(location, momentum/dt)
+            torque += loas.utils.vector.cross(location, momentum/dt)
 
             if create_batch_data_save:
                 batch_data_save.append((origin, location))
@@ -104,7 +105,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
         workers_output_queue.put((torque, batch_data_save))
 
 
-class SparseDrag(loas.Torque):
+class SparseDrag(Torque):
     """
     Inherits form loas.Torque, defines the algorithms to compute Sparse Atmospheric drag.
     """
@@ -124,7 +125,7 @@ class SparseDrag(loas.Torque):
         """
 
         super().__init__(satellite, viewer)
-        self.speed = loas.vector.tov(0,0,satellite_speed)
+        self.speed = loas.utils.vector.tov(0,0,satellite_speed)
         self.particle_mass = particle_mass
         self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.particle_rate = float(particle_density * satellite.dt*satellite_speed * math.pi*self.bounding_sphere_radius**2)
@@ -204,7 +205,7 @@ class SparseDrag(loas.Torque):
                 True
             ))
 
-        torque  = loas.vector.tov(0,0,0)
+        torque  = loas.utils.vector.tov(0,0,0)
         for _ in range(self.nb_workers):
             torqueadd, batch_data_save = self.workers_output_queue.get()
             torque += torqueadd

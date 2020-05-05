@@ -16,7 +16,7 @@ mesh.apply_scale(3) # rescale the model
 
 plotter = loas.output.Plotter()
 satellite = loas.Satellite( mesh, dt, I0 = I0, output=plotter )
-drag_torque = loas.SparseDrag( satellite, 1000, 1, 1, 6 )
+drag_torque = loas.parasite.SparseDrag( satellite, 1000, 1, 1, 6 )
 satellite.addParasiteTorque( drag_torque )
 
 drag_torque.start() # starts the workers that computes the drag torque

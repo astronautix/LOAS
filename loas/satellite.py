@@ -23,7 +23,7 @@ class Satellite(Thread):
         B0 = np.array([[0.],[0.],[0.]]),
         I0 = np.array([[1.],[1.],[1.]]),
         L0 = np.array([[0.],[0.],[0.]]),
-        Q0 = loas.Quaternion(1,0,0,0),
+        Q0 = loas.utils.Quaternion(1,0,0,0),
         output = None
     ):
         """
@@ -82,7 +82,7 @@ class Satellite(Thread):
         self.L += self._dL()*self.dt #calcul du nouveau moment cinétique
         Qnump = self.Q.vec() + self.Q.derivative(self.W)*self.dt #calcul de la nouvelle orientation
         Qnump /= np.linalg.norm(Qnump)
-        self.Q = loas.Quaternion(*Qnump[:,0])
+        self.Q = loas.utils.Quaternion(*Qnump[:,0])
         self.t += self.dt
         return self.Q
 
