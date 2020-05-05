@@ -6,56 +6,6 @@ import math
 import multiprocessing as mp
 
 
-def _getCollisionOnMesh(origin, mass, speed, sat_mesh, sat_Q, sat_W):
-    """
-    Computes the collition coordinate of the particle on the satellite's mesh
-
-    :param sat_mesh: Mesh of the satellite that has to encounter the particle
-    :type sat_mesh: trimesh.Trimesh
-    :param sat_Q: Quaternion of the satellite
-    :type sat_Q: loas.Quaternion
-    :para sat_W: Rotation verctor of the satellite
-    :type sat_W: (3,1) numpy.array
-    """
-
-    origin_sat = sat_Q.R2V(origin)[:,0]
-    dir_sat = sat_Q.R2V(speed)[:,0]
-
-    locations, index_ray, index_tri = sat_mesh.ray.intersects_location(
-        ray_origins=[origin_sat],
-        ray_directions=[dir_sat]
-    )
-
-    if len(locations) == 0:
-        return None, None, None, None
-
-    dists = np.array([
-        (origin_sat[0] - location[0])**2 +
-        (origin_sat[1] - location[1])**2 +
-        (origin_sat[2] - location[2])**2
-        for location in locations
-    ])
-
-    index_collision = np.argmin(dists)
-
-    location = locations[index_collision]
-    normal = sat_mesh.face_normals[index_tri[index_collision]]
-
-    location = sat_Q.V2R(np.array([[i] for i in location]))
-    normal = sat_Q.V2R(np.array([[i] for i in normal]))
-
-    rel_speed = speed - loas.vector.cross(sat_W, location)
-
-    normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
-    if normal_rel_speed > 0:
-        normal_rel_speed = 0
-    normal_rel_speed_vec = normal_rel_speed * normal / np.linalg.norm(normal)
-
-    momentum = 2*mass*normal_rel_speed_vec # elastic collision
-
-    return location, normal, rel_speed, momentum
-
-
 def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, create_batch_data_save, workers_input_queue, workers_output_queue):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
