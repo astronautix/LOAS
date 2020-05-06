@@ -36,11 +36,24 @@ class Viewer(Output):
         tmp.add_mesh(mesh)
         self.base.set_batch("vehicle_mesh", tmp)
 
+
     def update(self, **kwargs):
+
         if 'satellite' in kwargs:
             self.base.get_batch('vehicle_mesh').set_Q(kwargs['satellite'].Q)
             if self.draw_frames:
                 self.base.get_batch('vehicle_frame').set_Q(kwargs['satellite'].Q)
+
+        if 'parasite_torque' in kwargs:
+            batch = CustomBatch()
+            batch.add_line(origin=(0,0,0), dir=kwargs['parasite_torque'][:,0]/100, color=(255,255,255))
+
+            if 'parasite_particle_data' in kwargs and 'satellite_speed' in kwargs:
+                for origin, location in kwargs['parasite_particle_data']:
+                    batch.add_line(origin, kwargs['satellite_speed'][:,0])
+                    batch.add_pyramid(location[:,0])
+
+            self.base.set_batch('parasite', batch)
 
     def run(self):
         self.base.run()

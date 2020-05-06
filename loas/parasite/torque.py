@@ -6,7 +6,7 @@ class Torque(ABC):
     Abstract class that defines the structure of the Parasite Torques classes.
     """
 
-    def __init__(self, satellite, viewer = None):
+    def __init__(self, satellite):
         """
         :param satellite: Satellite instance
         :type satellite: loas.Satellite
@@ -15,7 +15,6 @@ class Torque(ABC):
         """
         super().__init__()
         self.satellite = satellite
-        self.viewer = viewer
 
     @abstractmethod
     def getTorque(self, t):

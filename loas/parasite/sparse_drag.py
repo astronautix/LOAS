@@ -83,6 +83,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
 
         # process torque given by actual hit point
         torque  = loas.utils.vector.tov(0,0,0)
+        drag = 0
         for location_sat, index_tri, origin, _ in locations_filtered.values():
 
             location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
@@ -97,12 +98,14 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
 
             momentum = 2*part_mass*normal_rel_speed_vec # elastic collision
 
+            drag += ((np.transpose(speed)/np.linalg.norm(speed)) @ momentum/dt)[0,0]
+
             torque += loas.utils.vector.cross(location, momentum/dt)
 
             if create_batch_data_save:
                 batch_data_save.append((origin, location))
 
-        workers_output_queue.put((torque, batch_data_save))
+        workers_output_queue.put((torque, drag, batch_data_save))
 
 
 class SparseDrag(Torque):
@@ -110,7 +113,7 @@ class SparseDrag(Torque):
     Inherits form loas.Torque, defines the algorithms to compute Sparse Atmospheric drag.
     """
 
-    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, nb_workers = 1, viewer = None):
+    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, nb_workers = 1, output = None):
         """
         :param satellite: Satellite instance that represents simulation
         :type satellite: loas.Satellite
@@ -124,14 +127,14 @@ class SparseDrag(Torque):
         :type viewer: loas.output.Viewer
         """
 
-        super().__init__(satellite, viewer)
+        super().__init__(satellite)
         self.speed = loas.utils.vector.tov(0,0,satellite_speed)
         self.particle_mass = particle_mass
         self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.particle_rate = float(particle_density * satellite.dt*satellite_speed * math.pi*self.bounding_sphere_radius**2)
         self.nb_workers = nb_workers
         self.workers = []
-        self.viewer = viewer
+        self.output = output
 
         self.workers_input_queue = mp.Queue()
         self.workers_output_queue = mp.Queue()
@@ -147,7 +150,7 @@ class SparseDrag(Torque):
             self.satellite.dt,
             self.speed,
             self.satellite.mesh,
-            self.viewer is not None,
+            self.output is not None,
             self.workers_input_queue,
             self.workers_output_queue
         )
@@ -185,14 +188,10 @@ class SparseDrag(Torque):
         if len(self.workers) == 0:
             raise RuntimeError("No workers are running! Call start() method beforehand")
 
-        if self.viewer is not None:
-            batch = loas.output.viewer.CustomBatch()
-
         nb_particles = max(int(round(random.normalvariate(
             mu = self.particle_rate,
             sigma = (self.particle_rate)**(1/2)
         ))),0) # uniform distribution of particle in an infinite volume
-
 
         nb_part = round(nb_particles/self.nb_workers)
         remaining_part = nb_particles - (self.nb_workers-1)*nb_part
@@ -206,18 +205,20 @@ class SparseDrag(Torque):
             ))
 
         torque  = loas.utils.vector.tov(0,0,0)
+        drag = 0
+        particle_data = []
         for _ in range(self.nb_workers):
-            torqueadd, batch_data_save = self.workers_output_queue.get()
-            torque += torqueadd
+            torque_add, drag_add, particle_data_add = self.workers_output_queue.get()
+            torque += torque_add
+            drag += drag_add
+            particle_data += particle_data_add
 
-            if batch_data_save is not None:
-                for origin, location in batch_data_save:
-                    batch.add_line(origin, self.speed[:,0])
-                    if location is not None:
-                        batch.add_pyramid(location[:,0])
-
-        if self.viewer is not None:
-            batch.add_line(origin=(0,0,0), dir=torque[:,0]/100, color=(255,255,255))
-            self.viewer.base.set_batch('main_drag', batch)
+        self.output.update(
+            t = self.satellite.t,
+            parasite_drag = drag,
+            parasite_torque = torque,
+            satellite_speed = self.speed,
+            parasite_particle_data = particle_data
+        )
 
         return torque

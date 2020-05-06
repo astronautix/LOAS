@@ -1,3 +1,4 @@
 *.pyc
 __pycache__/
 pi3d_demos/
+test/

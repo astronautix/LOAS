@@ -111,6 +111,7 @@ class Satellite(Thread):
             self._getNextIteration()
             if self.output is not None:
                 self.output.update(
+                    t = self.t,
                     satellite = self
                 )
 
