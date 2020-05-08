@@ -75,7 +75,7 @@ class Satellite(Thread):
         C_Rr = self.Q.V2R(C_Rv_no_parasite) + sum([torque.getTorque() for torque in self.parasite_torques])
         return C_Rr
 
-    def _getNextIteration(self):
+    def iterate(self):
         """
         Update the instance at the next simulation iteration
         """
@@ -84,7 +84,12 @@ class Satellite(Thread):
         Qnump /= np.linalg.norm(Qnump)
         self.Q = loas.utils.Quaternion(*Qnump[:,0])
         self.t += self.dt
-        return self.Q
+
+        if self.output is not None:
+            self.output.update(
+                t = self.t,
+                satellite = self
+            )
 
     def addParasiteTorque(self,parasite_torque):
         self.parasite_torques.append(parasite_torque)
@@ -108,12 +113,7 @@ class Satellite(Thread):
         while self.running:
             t1 = time.time()
 
-            self._getNextIteration()
-            if self.output is not None:
-                self.output.update(
-                    t = self.t,
-                    satellite = self
-                )
+            self.iterate()
 
             t2 = time.time()
 
