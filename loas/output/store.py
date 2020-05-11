@@ -12,5 +12,5 @@ class Store:
     def __getitem__(self, key):
         return self.data[key]
 
-    def get_keys(self):
+    def keys(self):
         return list(self.data.keys())
