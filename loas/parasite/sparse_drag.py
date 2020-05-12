@@ -105,7 +105,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
                 delta_rel_speed = 2 * normal_rel_speed * normal / np.linalg.norm(normal)
             else:
                 # diffuse reflexion
-                normal_refl_speed = math.abs(scipy.stats.maxwell.norm(scale = (k_b*part_temp_r/part_mass)**(1/2)))
+                normal_refl_speed = abs(scipy.stats.norm.rvs(scale = (k_b*part_temp_r/part_mass)**(1/2)))
                 delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
 
             momentum = part_mass*delta_rel_speed # elastic collision
