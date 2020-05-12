@@ -47,5 +47,5 @@ class Plotter(Output):
             ax.set_title(name)
 
     def run(self):
-        ani = animation.FuncAnimation(plt.figure(), self._animate, interval=self.interval)
+        animation.FuncAnimation(plt.figure(), self._animate, interval=self.interval)
         plt.show()
