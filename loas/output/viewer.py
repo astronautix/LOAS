@@ -2,8 +2,8 @@ import ctypes
 import os
 import numpy as np
 import pyglet
-from pyglet.gl import *
-from ctypes import *
+import pyglet.gl as gl
+import ctypes
 from math import sin, cos
 import trimesh
 
@@ -94,7 +94,7 @@ class BaseViewer(pyglet.window.Window):
         """
         super().__init__(700,700,resizable=True) #create the window
         self.push_handlers(self.keyboard)
-        glClearColor(0, 0.3, 0.5, 0)
+        gl.glClearColor(0, 0.3, 0.5, 0)
 
         pyglet.clock.schedule_interval(self.update, 1/self.fps)
         pyglet.app.run()
@@ -124,11 +124,11 @@ class BaseViewer(pyglet.window.Window):
         Required by pyglet
         """
         viewport_width, viewport_height = self.get_framebuffer_size()
-        glViewport(0, 0, viewport_width, viewport_height)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(60., float(width)/height, 1., 1000.)
-        glMatrixMode(GL_MODELVIEW)
+        gl.glViewport(0, 0, viewport_width, viewport_height)
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.gluPerspective(60., float(width)/height, 1., 1000.)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
         return True
 
     def on_draw(self):
@@ -136,13 +136,13 @@ class BaseViewer(pyglet.window.Window):
         Required by pyglet, defines how to draw the visuals
         """
         self.clear()
-        glLoadIdentity()
-        glLightfv(GL_LIGHT0, GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
-        glEnable(GL_LIGHT0)
-        glEnable(GL_DEPTH_TEST)
+        gl.glLoadIdentity()
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, self.lightfv(-1.0, 1.0, 1.0, 0.0))
+        gl.glEnable(gl.GL_LIGHT0)
+        gl.glEnable(gl.GL_DEPTH_TEST)
 
         # set camera position
-        gluLookAt(
+        gl.gluLookAt(
             self.cameraPos['dist']*cos(self.cameraPos["phi"])*sin(self.cameraPos['theta']),
             self.cameraPos['dist']*sin(self.cameraPos["phi"]),
             self.cameraPos['dist']*cos(self.cameraPos["phi"])*cos(self.cameraPos['theta']),
@@ -235,7 +235,7 @@ class CustomBatch(pyglet.graphics.Batch):
         """
         x,y,z = [float(i) for i in origin]
         a,b,c = [float(i) for i in dir]
-        self.add(2, GL_LINES, None,
+        self.add(2, gl.GL_LINES, None,
             ('v3f', (x,y,z,x+a,y+b,z+c)),
             ('c3B', color*2)
         )
@@ -258,7 +258,7 @@ class CustomBatch(pyglet.graphics.Batch):
         d = (x - size, y + size, z)
         e = (x, y, z + size)
         f = (x, y, z - size)
-        self.add(24, GL_TRIANGLES, None,
+        self.add(24, gl.GL_TRIANGLES, None,
             ('v3f', (
                 *a, *b, *e,
                 *a, *b, *f,
@@ -287,11 +287,11 @@ class CustomBatch(pyglet.graphics.Batch):
         if self.hidden:
             return
         if self.gl_lightning:
-            glEnable(GL_LIGHTING)
+            gl.glEnable(gl.GL_LIGHTING)
         else:
-            glDisable(GL_LIGHTING)
+            gl.glDisable(gl.GL_LIGHTING)
 
-        glPushMatrix() # saves the current projection matrix
-        glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
+        gl.glPushMatrix() # saves the current projection matrix
+        gl.glRotatef(self.Q.angle()*180/3.14, *self.Q.axis())
         super().draw()
-        glPopMatrix() #uses back initial projection matrix (revert rotation)
+        gl.glPopMatrix() #uses back initial projection matrix (revert rotation)
