@@ -1,6 +1,3 @@
-import ctypes
-import os
-import numpy as np
 import pyglet
 import pyglet.gl as gl
 import ctypes
