@@ -1,5 +1,4 @@
 import numpy as np
-import trimesh
 import random
 import math
 import multiprocessing as mp
@@ -32,9 +31,6 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
     :type workers_input_queue: multiprocessing.Queue
     """
 
-
-    satellite_attitude = loas.utils.Quaternion(1,0,0,0)
-    satellite_rot_speed = loas.utils.vector.tov(0,0,0)
     workers_running = True
 
     while workers_running:
@@ -194,7 +190,6 @@ class SparseDrag(Torque):
         ))),0) # uniform distribution of particle in an infinite volume
 
         nb_part = round(nb_particles/self.nb_workers)
-        remaining_part = nb_particles - (self.nb_workers-1)*nb_part
 
         for i in range(self.nb_workers):
             self.workers_input_queue.put((

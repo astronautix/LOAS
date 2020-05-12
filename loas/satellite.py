@@ -108,7 +108,6 @@ class Satellite(Thread):
 
         frames = 0
         time_frames = 0
-        prevtime = time.time()
 
         while self.running:
             t1 = time.time()
