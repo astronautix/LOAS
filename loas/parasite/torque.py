@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import loas
 
 class Torque(ABC):
     """
