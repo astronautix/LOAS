@@ -142,7 +142,7 @@ class SparseDrag(Torque):
         self.particle_mass = particle_mass
         self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.particles_per_iteration = particles_per_iteration
-        self.scale_factor = particle_density * satellite.dt * satellite_speed * math.pi*self.bounding_sphere_radius**2 /particles_per_iteration
+        self.scale_factor = particle_density / particle_mass * satellite.dt * satellite_speed * math.pi*self.bounding_sphere_radius**2 /particles_per_iteration
         self.nb_workers = nb_workers
         self.workers = []
         self.output = output
