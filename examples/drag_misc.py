@@ -26,20 +26,40 @@ drag_torque = loas.parasite.SparseDrag(
     part_density = 1e-11,
     part_mol_mass = 0.016,
     part_temp = 1800,
-    part_per_iteration = 1e4,
+    part_per_iteration = 1e7,
     coll_epsilon = 0.10,
     coll_alpha = 0.95,
     nb_workers = 6,
     output=store
 )
 satellite.addParasiteTorque( drag_torque )
-
 drag_torque.start()
-for angle in np.linspace(0, math.pi/2, 10):
-    print(angle)
+
+for alpha in np.linspace(0,1,10):
+    print(alpha)
+    drag_torque.coll_alpha = alpha
+    angle = 0
     satellite.Q = loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0)
     satellite.L = loas.utils.vector.tov(0,0,0)
     satellite.iterate()
-    store.update(0,quaternion = satellite.Q)
+
 drag_torque.stop()
 drag_torque.join()
+
+
+import asyncio
+from nio import AsyncClient
+import conf
+async def main():
+    client = AsyncClient(conf.HOST, conf.USER_ID)
+    await client.login(conf.USER_PWD)
+    await client.room_send(
+        room_id=conf.ROOM,
+        message_type="m.room.message",
+        content={
+            "msgtype": "m.text",
+            "body": "Calculs Terminés."
+        }
+    )
+    await client.close()
+asyncio.run(main())

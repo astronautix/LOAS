@@ -12,14 +12,8 @@ def _rayTestingWorker(
     workers_input_queue,
     workers_output_queue,
     create_batch_data_save,
-    sat_bs_radius,
-    sat_speed,
     sat_mesh,
-    part_mass,
-    part_temp_i,
-    part_temp_r,
-    coll_epsilon,
-    dt
+    sat_bs_radius
 ):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
@@ -48,8 +42,18 @@ def _rayTestingWorker(
     workers_running = True
 
     while workers_running:
-
-        pending_particles, sat_Q, sat_W, workers_running = workers_input_queue.get()
+        (
+            workers_running,
+            sat_speed,
+            sat_Q,
+            sat_W,
+            part_pending,
+            part_mass,
+            part_temp_i,
+            part_temp_r,
+            coll_epsilon,
+            dt
+        ) = workers_input_queue.get()
         if not workers_running:
             return
 
@@ -69,11 +73,11 @@ def _rayTestingWorker(
                 -2*sat_bs_radius
             )
 
-        origins = [_getRandomOrigin() for _ in range(pending_particles)]
+        origins = [_getRandomOrigin() for _ in range(part_pending)]
         origins_sat = np.array([sat_Q.R2V(loas.utils.vector.tov(*origin))[:,0] for origin in origins])
         locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
             ray_origins=origins_sat,
-            ray_directions=[dir_sat]*pending_particles
+            ray_directions=[dir_sat]*part_pending
         )
 
         #filter only for closest point
@@ -176,6 +180,14 @@ class SparseDrag(Torque):
         self.workers_input_queue = mp.Queue()
         self.workers_output_queue = mp.Queue()
 
+    @property
+    def coll_alpha(self, alpha):
+        raise AttributeError
+
+    @coll_alpha.setter
+    def coll_alpha(self, alpha):
+        self.part_temp_r = self.part_temp_i + alpha*(self.sat_temp - self.part_temp_i)
+
     def start(self):
         """
         Starts the workers
@@ -185,14 +197,8 @@ class SparseDrag(Torque):
             self.workers_input_queue,
             self.workers_output_queue,
             self.output is not None,
-            self.sat_bs_radius,
-            self.sat_speed,
             self.satellite.mesh,
-            self.part_mass,
-            self.part_temp_i,
-            self.part_temp_r,
-            self.coll_epsilon,
-            self.satellite.dt
+            self.sat_bs_radius
         )
 
         for _ in range(self.nb_workers):
@@ -207,10 +213,7 @@ class SparseDrag(Torque):
 
         for _ in range(self.nb_workers):
             self.workers_input_queue.put((
-                None,
-                None,
-                None,
-                False
+                False, None, None, None, None, None, None, None, None, None
             ))
 
     def join(self):
@@ -236,13 +239,20 @@ class SparseDrag(Torque):
 
         nb_part = round(nb_particles/self.nb_workers)
 
+        args = (
+            True,
+            self.sat_speed,
+            self.satellite.Q,
+            self.satellite.W,
+            nb_part,
+            self.part_mass,
+            self.part_temp_i,
+            self.part_temp_r,
+            self.coll_epsilon,
+            self.satellite.dt
+        )
         for i in range(self.nb_workers):
-            self.workers_input_queue.put((
-                nb_part,
-                self.satellite.Q,
-                self.satellite.W,
-                True
-            ))
+            self.workers_input_queue.put(args)
 
         torque  = loas.utils.vector.tov(0,0,0)
         drag = 0

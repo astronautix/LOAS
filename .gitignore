@@ -2,3 +2,4 @@
 __pycache__/
 pi3d_demos/
 test/
+conf.py
