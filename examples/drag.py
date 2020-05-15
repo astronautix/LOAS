@@ -8,11 +8,6 @@ import loas
 # simulation parameters
 dt = 1/25 # Simulation time step
 I0 = np.diag((200,200,200)) # Satellite inertia tensor
-part_density = 10**(-11) #kg.m-3
-part_mol_mass = 16e-3 #atomic oxygen
-part_per_iterations = 100
-sat_speed = 7000
-part_mass = part_mol_mass / 6.022e23
 
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./models/sphere.stl")
@@ -23,7 +18,19 @@ mesh.apply_scale(.03) # rescale the model
 # define main objects
 output = loas.output.Viewer( mesh ) #loas.output.Plotter()
 satellite = loas.Satellite( mesh, dt, I0 = I0, output=output)
-drag_torque = loas.parasite.SparseDrag( satellite, part_density, sat_speed, part_mass, part_per_iterations, 6, output=output)
+drag_torque = loas.parasite.SparseDrag(
+    satellite,
+    sat_speed = 7000,
+    sat_temp = 300,
+    part_density = 1e-11,
+    part_mol_mass = 0.016,
+    part_temp = 1800,
+    part_per_iteration = 100,
+    coll_epsilon = 0.1,
+    coll_alpha = 0.95,
+    nb_workers = 1,
+    output=output
+)
 satellite.addParasiteTorque( drag_torque )
 
 drag_torque.start() # starts the workers that computes the drag torque

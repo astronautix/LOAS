@@ -3,18 +3,24 @@ import random
 import math
 import multiprocessing as mp
 import scipy.stats
+import scipy.constants
 
 import loas
 from .torque import Torque
 
-coll_epsilon = 0.10 # fraction of specular emission
-coll_alpha = 0.95 # accomodation coefficient
-part_temp_i = 1800
-sat_temp = 300
-k_b = 1.38e-23
-part_temp_r = part_temp_i + coll_alpha*(sat_temp - part_temp_i)
-
-def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, create_batch_data_save, workers_input_queue, workers_output_queue):
+def _rayTestingWorker(
+    workers_input_queue,
+    workers_output_queue,
+    create_batch_data_save,
+    sat_bs_radius,
+    sat_speed,
+    sat_mesh,
+    part_mass,
+    part_temp_i,
+    part_temp_r,
+    coll_epsilon,
+    dt
+):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
 
@@ -52,15 +58,15 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
         else:
             batch_data_save = None
 
-        dir_sat = sat_Q.R2V(speed)[:,0]
+        dir_sat = sat_Q.R2V(sat_speed)[:,0]
 
         def _getRandomOrigin():
-            r = bounding_sphere_radius*math.sqrt(random.random())
+            r = sat_bs_radius*math.sqrt(random.random())
             theta = 2*math.pi*random.random()
             return (
                 r*math.cos(theta),
                 r*math.sin(theta),
-                -2*bounding_sphere_radius
+                -2*sat_bs_radius
             )
 
         origins = [_getRandomOrigin() for _ in range(pending_particles)]
@@ -93,7 +99,7 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
             location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
             normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
 
-            rel_speed = speed - loas.utils.vector.cross(sat_W, location)
+            rel_speed = sat_speed - loas.utils.vector.cross(sat_W, location)
 
             normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
             if normal_rel_speed > 0:
@@ -105,11 +111,13 @@ def _rayTestingWorker(bounding_sphere_radius, part_mass, dt, speed, sat_mesh, cr
                 delta_rel_speed = 2 * normal_rel_speed * normal / np.linalg.norm(normal)
             else:
                 # diffuse reflexion
-                normal_refl_speed = abs(scipy.stats.norm.rvs(scale = (k_b*part_temp_r/part_mass)**(1/2)))
+                normal_refl_speed = abs(scipy.stats.norm.rvs(
+                    scale = (scipy.constants.k*part_temp_r/part_mass)**(1/2)
+                ))
                 delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
 
             momentum = part_mass*delta_rel_speed # elastic collision
-            drag += ((np.transpose(speed)/np.linalg.norm(speed)) @ momentum/dt)[0,0]
+            drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
             torque += loas.utils.vector.cross(location, momentum/dt)
 
             if create_batch_data_save:
@@ -123,7 +131,20 @@ class SparseDrag(Torque):
     Inherits form loas.Torque, defines the algorithms to compute Sparse Atmospheric drag.
     """
 
-    def __init__(self, satellite, particle_density, satellite_speed, particle_mass, particles_per_iteration, nb_workers = 1, output = None):
+    def __init__(
+        self,
+        satellite,
+        sat_speed = 7000,
+        sat_temp = 300,
+        part_density = 1e-11,
+        part_mol_mass = 0.016,
+        part_temp = 1800,
+        part_per_iteration = 100,
+        coll_epsilon = 0.1,
+        coll_alpha = 0.95,
+        nb_workers = 1,
+        output = None
+    ):
         """
         :param satellite: Satellite instance that represents simulation
         :type satellite: loas.Satellite
@@ -138,11 +159,17 @@ class SparseDrag(Torque):
         """
 
         super().__init__(satellite)
-        self.speed = loas.utils.vector.tov(0,0,satellite_speed)
-        self.particle_mass = particle_mass
-        self.bounding_sphere_radius = np.linalg.norm(satellite.mesh.extents)/2
-        self.particles_per_iteration = particles_per_iteration
-        self.scale_factor = particle_density / particle_mass * satellite.dt * satellite_speed * math.pi*self.bounding_sphere_radius**2 /particles_per_iteration
+        self.sat_speed = loas.utils.vector.tov(0,0,sat_speed)
+        self.sat_temp = sat_temp
+        self.sat_bs_radius = np.linalg.norm(satellite.mesh.extents)/2
+        self.part_density = part_density
+        self.part_mass = part_mol_mass/scipy.constants.N_A
+        self.part_temp_i = part_temp
+        self.part_temp_r = part_temp + coll_alpha*(sat_temp - part_temp)
+        self.part_per_iteration = part_per_iteration
+        self.coll_epsilon = coll_epsilon
+
+        self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
         self.workers = []
         self.output = output
@@ -155,15 +182,19 @@ class SparseDrag(Torque):
         """
 
         args = (
-            self.bounding_sphere_radius,
-            self.particle_mass,
-            self.satellite.dt,
-            self.speed,
-            self.satellite.mesh,
-            self.output is not None,
             self.workers_input_queue,
-            self.workers_output_queue
+            self.workers_output_queue,
+            self.output is not None,
+            self.sat_bs_radius,
+            self.sat_speed,
+            self.satellite.mesh,
+            self.part_mass,
+            self.part_temp_i,
+            self.part_temp_r,
+            self.coll_epsilon,
+            self.satellite.dt
         )
+
         for _ in range(self.nb_workers):
             worker = mp.Process(target=_rayTestingWorker, args=args)
             worker.start()
@@ -199,8 +230,8 @@ class SparseDrag(Torque):
             raise RuntimeError("No workers are running! Call start() method beforehand")
 
         nb_particles = max(int(round(random.normalvariate(
-            mu = self.particles_per_iteration,
-            sigma = (self.particles_per_iteration)**(1/2)
+            mu = self.part_per_iteration,
+            sigma = (self.part_per_iteration)**(1/2)
         ))),0) # uniform distribution of particle in an infinite volume
 
         nb_part = round(nb_particles/self.nb_workers)
@@ -229,7 +260,7 @@ class SparseDrag(Torque):
             t = self.satellite.t,
             parasite_drag = drag,
             parasite_torque = torque,
-            satellite_speed = self.speed,
+            satellite_speed = self.sat_speed,
             parasite_particle_data = particle_data
         )
 
