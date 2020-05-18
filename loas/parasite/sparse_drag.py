@@ -263,7 +263,8 @@ class SparseDrag(Torque):
             torque_add, drag_add, particle_data_add = self.workers_output_queue.get()
             torque += torque_add
             drag += drag_add
-            particle_data += particle_data_add
+            if particle_data_add is not None:
+                particle_data += particle_data_add
 
         torque *= self.scale_factor
         drag *= self.scale_factor
