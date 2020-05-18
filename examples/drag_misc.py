@@ -63,7 +63,7 @@ if SEND_MESSAGE:
             message_type="m.room.message",
             content={
                 "msgtype": "m.text",
-                "body": "Calculs Terminés."
+                "body": repr(store['parasite_drag'])
             }
         )
         await client.close()

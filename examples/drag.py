@@ -29,7 +29,8 @@ drag_torque = loas.parasite.SparseDrag(
     coll_epsilon = 0.1,
     coll_alpha = 0.95,
     nb_workers = 1,
-    output=output
+    output=output,
+    output_particle_data=True
 )
 satellite.addParasiteTorque( drag_torque )
 
