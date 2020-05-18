@@ -147,7 +147,8 @@ class SparseDrag(Torque):
         coll_epsilon = 0.1,
         coll_alpha = 0.95,
         nb_workers = 1,
-        output = None
+        output = None,
+        output_particle_data = False
     ):
         """
         :param satellite: Satellite instance that represents simulation
@@ -177,6 +178,7 @@ class SparseDrag(Torque):
         self.nb_workers = nb_workers
         self.workers = []
         self.output = output
+        self.output_particle_data = output_particle_data
         self.workers_input_queue = mp.Queue()
         self.workers_output_queue = mp.Queue()
 
@@ -196,7 +198,7 @@ class SparseDrag(Torque):
         args = (
             self.workers_input_queue,
             self.workers_output_queue,
-            self.output is not None,
+            self.output_particle_data,
             self.satellite.mesh,
             self.sat_bs_radius
         )
