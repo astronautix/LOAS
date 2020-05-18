@@ -46,20 +46,25 @@ for alpha in np.linspace(0,1,10):
 drag_torque.stop()
 drag_torque.join()
 
+SEND_MESSAGE = True
+try:
+    import conf
+except ModuleNotFoundError:
+    SEND_MESSAGE = False
 
-import asyncio
-from nio import AsyncClient
-import conf
-async def main():
-    client = AsyncClient(conf.HOST, conf.USER_ID)
-    await client.login(conf.USER_PWD)
-    await client.room_send(
-        room_id=conf.ROOM,
-        message_type="m.room.message",
-        content={
-            "msgtype": "m.text",
-            "body": "Calculs Terminés."
-        }
-    )
-    await client.close()
-asyncio.run(main())
+if SEND_MESSAGE:
+    import asyncio
+    from nio import AsyncClient
+    async def main():
+        client = AsyncClient(conf.HOST, conf.USER_ID)
+        await client.login(conf.USER_PWD)
+        await client.room_send(
+            room_id=conf.ROOM,
+            message_type="m.room.message",
+            content={
+                "msgtype": "m.text",
+                "body": "Calculs Terminés."
+            }
+        )
+        await client.close()
+    asyncio.run(main())
