@@ -14,7 +14,7 @@ def _rayTestingWorker(
     create_batch_data_save,
     sat_mesh,
     sat_bs_radius,
-    max_part_per_batch
+    max_part_batch
 ):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
@@ -41,7 +41,6 @@ def _rayTestingWorker(
     """
 
     workers_running = True
-
     while workers_running:
         (
             workers_running,
@@ -78,7 +77,11 @@ def _rayTestingWorker(
         drag = 0
 
         while part_pending > 0:
-            part_batch = min(part_pending, max_part_per_batch)
+            # disable batching if max_part_batch to 0
+            if max_part_batch > 0:
+                part_batch = min(part_pending, max_part_batch)
+            else:
+                part_batch = part_pending
             part_pending -= part_batch
 
             origins = [_getRandomOrigin() for _ in range(part_batch)]
@@ -152,7 +155,7 @@ class SparseDrag(Torque):
         coll_epsilon = 0.1,
         coll_alpha = 0.95,
         nb_workers = 1,
-        max_simultaneous_part = 1e6,
+        max_simultaneous_part = 0,
         output = None,
         output_particle_data = False
     ):
