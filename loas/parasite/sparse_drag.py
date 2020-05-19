@@ -8,6 +8,17 @@ import scipy.constants
 import loas
 from .torque import Torque
 
+
+def silent_interrupt(f):
+    def f_silent(*args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except (KeyboardInterrupt, SystemExit):
+            pass
+    return f_silent
+
+
+@silent_interrupt
 def _rayTestingWorker(
     workers_input_queue,
     workers_output_queue,
