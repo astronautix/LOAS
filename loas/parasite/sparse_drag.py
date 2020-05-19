@@ -13,7 +13,8 @@ def _rayTestingWorker(
     workers_output_queue,
     create_batch_data_save,
     sat_mesh,
-    sat_bs_radius
+    sat_bs_radius,
+    max_part_per_batch
 ):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
@@ -73,59 +74,63 @@ def _rayTestingWorker(
                 -2*sat_bs_radius
             )
 
-        origins = [_getRandomOrigin() for _ in range(part_pending)]
-        origins_sat = np.array([sat_Q.R2V(loas.utils.vector.tov(*origin))[:,0] for origin in origins])
-        locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
-            ray_origins=origins_sat,
-            ray_directions=[dir_sat]*part_pending
-        )
-
-        #filter only for closest point
-        locations_filtered = {}
-        for index, location in enumerate(locations):
-            index_tri = indexes_tri[index]
-            index_ray = indexes_ray[index]
-            origin_sat = origins_sat[index_ray]
-            origin = origins[index_ray]
-            dist = (origin_sat[0] - location[0])**2 + (origin_sat[1] - location[1])**2 + (origin_sat[2] - location[2])**2
-
-            if not index_ray in locations_filtered:
-                locations_filtered[index_ray] = (location, index_tri, origin, dist)
-
-            elif locations_filtered[index_ray][3] > dist:
-                locations_filtered[index_ray] = (location, index_tri, origin, dist)
-
-        # process torque given by actual hit point
         torque  = loas.utils.vector.tov(0,0,0)
         drag = 0
-        for location_sat, index_tri, origin, _ in locations_filtered.values():
 
-            location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
-            normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
+        while part_pending > 0:
+            part_batch = min(part_pending, max_part_per_batch)
+            part_pending -= part_batch
 
-            rel_speed = sat_speed - loas.utils.vector.cross(sat_W, location)
+            origins = [_getRandomOrigin() for _ in range(part_batch)]
+            origins_sat = np.array([sat_Q.R2V(loas.utils.vector.tov(*origin))[:,0] for origin in origins])
+            locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
+                ray_origins=origins_sat,
+                ray_directions=[dir_sat]*part_batch
+            )
 
-            normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
-            if normal_rel_speed > 0:
-                # no actual collision
-                continue
+            #filter only for closest point
+            locations_filtered = {}
+            for index, location in enumerate(locations):
+                index_tri = indexes_tri[index]
+                index_ray = indexes_ray[index]
+                origin_sat = origins_sat[index_ray]
+                origin = origins[index_ray]
+                dist = (origin_sat[0] - location[0])**2 + (origin_sat[1] - location[1])**2 + (origin_sat[2] - location[2])**2
 
-            if random.random() < coll_epsilon:
-                # specular reflexion
-                delta_rel_speed = 2 * normal_rel_speed * normal / np.linalg.norm(normal)
-            else:
-                # diffuse reflexion
-                normal_refl_speed = abs(scipy.stats.norm.rvs(
-                    scale = (scipy.constants.k*part_temp_r/part_mass)**(1/2)
-                ))
-                delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
+                if not index_ray in locations_filtered:
+                    locations_filtered[index_ray] = (location, index_tri, origin, dist)
 
-            momentum = part_mass*delta_rel_speed # elastic collision
-            drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
-            torque += loas.utils.vector.cross(location, momentum/dt)
+                elif locations_filtered[index_ray][3] > dist:
+                    locations_filtered[index_ray] = (location, index_tri, origin, dist)
 
-            if create_batch_data_save:
-                batch_data_save.append((origin, location))
+            # process torque given by actual hit point
+            for location_sat, index_tri, origin, _ in locations_filtered.values():
+
+                location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
+                normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
+                rel_speed = sat_speed - loas.utils.vector.cross(sat_W, location)
+
+                normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
+                if normal_rel_speed > 0:
+                    # no actual collision
+                    continue
+
+                if random.random() < coll_epsilon:
+                    # specular reflexion
+                    delta_rel_speed = 2 * normal_rel_speed * normal / np.linalg.norm(normal)
+                else:
+                    # diffuse reflexion
+                    normal_refl_speed = abs(scipy.stats.norm.rvs(
+                        scale = (scipy.constants.k*part_temp_r/part_mass)**(1/2)
+                    ))
+                    delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
+
+                momentum = part_mass*delta_rel_speed # elastic collision
+                drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
+                torque += loas.utils.vector.cross(location, momentum/dt)
+
+                if create_batch_data_save:
+                    batch_data_save.append((origin, location))
 
         workers_output_queue.put((torque, drag, batch_data_save))
 
@@ -147,6 +152,7 @@ class SparseDrag(Torque):
         coll_epsilon = 0.1,
         coll_alpha = 0.95,
         nb_workers = 1,
+        max_simultaneous_part = 1e6,
         output = None,
         output_particle_data = False
     ):
@@ -177,6 +183,7 @@ class SparseDrag(Torque):
         self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
         self.workers = []
+        self.part_per_batch = max_simultaneous_part/nb_workers
         self.output = output
         self.output_particle_data = output_particle_data
         self.workers_input_queue = mp.Queue()
@@ -200,7 +207,8 @@ class SparseDrag(Torque):
             self.workers_output_queue,
             self.output_particle_data,
             self.satellite.mesh,
-            self.sat_bs_radius
+            self.sat_bs_radius,
+            self.part_per_batch
         )
 
         for _ in range(self.nb_workers):
