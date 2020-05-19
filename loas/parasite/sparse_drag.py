@@ -183,7 +183,7 @@ class SparseDrag(Torque):
         self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
         self.workers = []
-        self.part_per_batch = max_simultaneous_part/nb_workers
+        self.part_per_batch = int(max_simultaneous_part/nb_workers)
         self.output = output
         self.output_particle_data = output_particle_data
         self.workers_input_queue = mp.Queue()
