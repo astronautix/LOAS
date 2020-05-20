@@ -1,7 +1,7 @@
 Atmospheric Drag
 ==================
 
-.. automodule:: loas.atmospheric_drag
+.. automodule:: loas.parasite.sparse_drag
   :members:
 
-.. autofunction:: loas.atmospheric_drag._rayTestingWorker
+.. autofunction:: loas.parasite.sparse_drag._sparse_drag_worker

@@ -1,5 +1,5 @@
 Torque
 ==============
 
-.. automodule:: loas.torque
+.. automodule:: loas.parasite.torque
   :members:

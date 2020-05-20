@@ -1,5 +1,5 @@
 Vector
 ==============
 
-.. automodule:: loas.vector
+.. automodule:: loas.utils.vector
   :members:

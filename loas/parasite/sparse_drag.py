@@ -19,7 +19,7 @@ def silent_interrupt(f):
 
 
 @silent_interrupt
-def _rayTestingWorker(
+def _sparse_drag_worker(
     workers_input_queue,
     workers_output_queue,
     create_batch_data_save,
@@ -33,22 +33,18 @@ def _rayTestingWorker(
     Every worker is launched only once. The trick is that, once starte, communicate with the rest of the program through Queues.
     There are two queues, one for input, one for output. The worker waits for any input and once it gets it, runs the simulation, and outputs its parameters.
 
-    :param bounding_sphere_radius: Radius of the bounding sphere of the saellite, i.e. the sphere that entirely includes the satellite. It defines the radius of thje circle in witch it is needed to generate particles
-    :type bounding_sphere_radius: float
-    :param part_mass: Mass of each particles
-    :type part_mass: float
-    :param dt: Time step of the simulation, i.e. satellite.dt
-    :type dt: float
-    :param speed: Relative speed of the satellite in the fluid. Can be calculated from the orbital parameters
-    :type speed: float
-    :param sat_mesh: Satellite's mesh
-    :type sat_mesh: trimesh.Trimesh
-    :param create_batch_data_save: if set to true, the worker will output at each iteration a list containing the result of every particle simultation so that it can be worked into a batch and printed on the pyglet's window.
-    :type create_batch_data_save: bool
     :param workers_input_queue: Queue which is used to pass parameters to the worker
     :type workers_input_queue: multiprocessing.Queue
     :param workers_output_queue: Queue which is used to sends the workers simulation result
     :type workers_input_queue: multiprocessing.Queue
+    :param create_batch_data_save: if set to true, the worker will output at each iteration a list containing the result of every particle simultation so that it can be worked into a batch and printed on the pyglet's window.
+    :type create_batch_data_save: bool
+    :param sat_mesh: Satellite's mesh
+    :type sat_mesh: trimesh.Trimesh
+    :param sat_bs_radius: Radius of the bounding sphere of the saellite, i.e. the sphere that entirely includes the satellite. It defines the radius of thje circle in witch it is needed to generate particles
+    :type sat_bs_radius: float
+    :param max_part_batch: Maximum number of particles given at once to the ray tester. If set to 0, disables, the limit.
+    :param max_part_batch: int
     """
 
     workers_running = True
@@ -173,14 +169,30 @@ class SparseDrag(Torque):
         """
         :param satellite: Satellite instance that represents simulation
         :type satellite: loas.Satellite
-        :param particle_density: Density of particle to be simulated
-        :type particle_density: int
-        :param particle_mass: Mass of the particles
-        :type particle_mass: float
-        :param nb_workers: Number of parallels workers (thus threads) that are launched for the simulation
+        :param sat_speed: Satellite speed relative to the ionosphere
+        :param sat_speed: float
+        :param sat_temp: Satellite temperature
+        :param sat_temp: float
+        :param part_density: Particle density
+        :type part_density: int
+        :param part_mol_mass: Molar mass of the particles
+        :type part_mol_mass: float
+        :param part_temp: Temperature of the particles
+        :type part_temp: float
+        :param part_per_iteration: Average number of particles simulated at each iteration
+        :type part_per_iteration: int
+        :param coll_epsilon: Ratio of specular reflexion
+        :type coll_epsilon: float
+        :param coll_alpha: Accomodation coefficient
+        :type coll_alpha: float
+        :param nb_workers: Number of parallels workers (thus processes) that are launched for the simulation
         :type nb_workers: int
-        :param viewer: Viewer instance. Will be used to print particle impact on mesh and computed torque. If set to None (or unset), nothing will be displayed.
-        :type viewer: loas.output.Viewer
+        :param max_simultaneous_part: Maximum number of particles simulated simultaneously. It can be used to reduce the RAM usage, but it is detrimental to execution speed. If set to 0, the limit is disabled
+        :param max_simultaneous_part: int
+        :param output: Type of output to send simulation data. If set to None, it will output nothing
+        :type output: loas.output.Output
+        :param output_particle_data: If set to True, the simulation will send the origin point and collision point of every particle. It can lead to big ram usage.
+        :type output_particle_data: bool
         """
 
         super().__init__(satellite)
@@ -226,7 +238,7 @@ class SparseDrag(Torque):
         )
 
         for _ in range(self.nb_workers):
-            worker = mp.Process(target=_rayTestingWorker, args=args)
+            worker = mp.Process(target=_sparse_drag_worker, args=args)
             worker.start()
             self.workers.append(worker)
 

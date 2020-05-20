@@ -7,7 +7,7 @@ Welcome to loas's documentation!
   :caption: Getting Started
 
 .. toctree::
-  api/viewer
+  api/output
   api/satellite
   api/quaternion
   api/atmospheric_drag
