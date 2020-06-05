@@ -202,7 +202,7 @@ class SparseDrag(Torque):
         self.part_density = part_density
         self.part_mass = part_mol_mass/scipy.constants.N_A
         self.part_temp_i = part_temp
-        self.part_temp_r = part_temp + coll_alpha*(sat_temp - part_temp)
+        self.part_temp_r = (1-coll_alpha)*(part_temp+self.part_mass/scipy.constants.k/3*self.sat_speed**2) + coll_alpha*sat_temp
         self.part_per_iteration = part_per_iteration
         self.coll_epsilon = coll_epsilon
 
