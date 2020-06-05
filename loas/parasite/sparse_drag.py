@@ -54,15 +54,18 @@ def _sparse_drag_worker(
             sat_speed,
             sat_Q,
             sat_W,
+            sat_temp,
             part_pending,
             part_mass,
-            part_temp_i,
-            part_temp_r,
+            part_temp,
+            coll_alpha,
             coll_epsilon,
             dt
         ) = workers_input_queue.get()
         if not workers_running:
             return
+
+        part_temp_r = (1-coll_alpha)*(part_temp+part_mass/scipy.constants.k/3*sat_speed**2) + coll_alpha*sat_temp
 
         if create_batch_data_save:
             batch_data_save = []
@@ -200,9 +203,9 @@ class SparseDrag(Torque):
         self.sat_temp = sat_temp
         self.sat_bs_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.part_density = part_density
+        self.part_temp = part_temp
         self.part_mass = part_mol_mass/scipy.constants.N_A
-        self.part_temp_i = part_temp
-        self.part_temp_r = (1-coll_alpha)*(part_temp+self.part_mass/scipy.constants.k/3*self.sat_speed**2) + coll_alpha*sat_temp
+        self.coll_alpha = coll_alpha
         self.part_per_iteration = part_per_iteration
         self.coll_epsilon = coll_epsilon
 
@@ -215,13 +218,6 @@ class SparseDrag(Torque):
         self.workers_input_queue = mp.Queue()
         self.workers_output_queue = mp.Queue()
 
-    @property
-    def coll_alpha(self, alpha):
-        raise AttributeError
-
-    @coll_alpha.setter
-    def coll_alpha(self, alpha):
-        self.part_temp_r = self.part_temp_i + alpha*(self.sat_temp - self.part_temp_i)
 
     def start(self):
         """
@@ -249,7 +245,7 @@ class SparseDrag(Torque):
 
         for _ in range(self.nb_workers):
             self.workers_input_queue.put((
-                False, None, None, None, None, None, None, None, None, None
+                False, None, None, None, None, None, None, None, None, None, None
             ))
 
     def join(self):
@@ -280,10 +276,11 @@ class SparseDrag(Torque):
             self.sat_speed,
             self.satellite.Q,
             self.satellite.W,
+            self.sat_temp,
             nb_part,
             self.part_mass,
-            self.part_temp_i,
-            self.part_temp_r,
+            self.part_temp,
+            self.coll_alpha,
             self.coll_epsilon,
             self.satellite.dt
         )
