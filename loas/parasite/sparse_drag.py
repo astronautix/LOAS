@@ -65,7 +65,11 @@ def _sparse_drag_worker(
         if not workers_running:
             return
 
-        part_temp_r = (1-coll_alpha)*(part_temp+part_mass/scipy.constants.k/3*sat_speed**2) + coll_alpha*sat_temp
+        part_temp_r = (1-coll_alpha)*(part_temp+part_mass/scipy.constants.k/3*np.linalg.norm(sat_speed)**2) + coll_alpha*sat_temp
+
+        part_E_i = 3/2*scipy.constants.k*part_temp + 1/2*part_mass*np.linalg.norm(sat_speed)**2
+        part_E_w = 3/2*scipy.constants.k*sat_temp
+        part_E_r = (1-coll_alpha)*part_E_i + coll_alpha*part_E_w
 
         if create_batch_data_save:
             batch_data_save = []
@@ -136,6 +140,7 @@ def _sparse_drag_worker(
                     normal_refl_speed = abs(scipy.stats.norm.rvs(
                         scale = (scipy.constants.k*part_temp_r/part_mass)**(1/2)
                     ))
+                    normal_refl_speed = math.sqrt(2*part_E_r/part_mass)*math.cos(math.asin(random.random()))
                     delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
 
                 momentum = part_mass*delta_rel_speed # elastic collision
@@ -256,7 +261,7 @@ class SparseDrag(Torque):
         for worker in self.workers:
             worker.join()
 
-    def getTorque(self):
+    def runSim(self):
         """
         Get the torque computed by the class
         """
@@ -304,8 +309,10 @@ class SparseDrag(Torque):
             t = self.satellite.t,
             parasite_drag = drag,
             parasite_torque = torque,
-            satellite_speed = self.sat_speed,
             parasite_particle_data = particle_data
         )
 
-        return torque
+        return drag, torque
+
+    def getTorque(self):
+        return self.runSim()[1]

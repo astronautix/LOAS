@@ -18,7 +18,13 @@ mesh.apply_scale(.08) # rescale the model
 
 # define main objects
 store = loas.output.Store()
-satellite = loas.Satellite( mesh, dt, I0 = I0, output=None)
+satellite = loas.Satellite(
+    mesh,
+    dt,
+    I0 = I0,
+    Q0 = loas.utils.Quaternion(1,0,0,0),
+    L0 = loas.utils.vector.tov(0,0,0)
+)
 drag_torque = loas.parasite.SparseDrag(
     satellite,
     sat_speed = 7000,
@@ -35,13 +41,10 @@ drag_torque = loas.parasite.SparseDrag(
 satellite.addParasiteTorque( drag_torque )
 
 drag_torque.start()
-for angle in np.linspace(0, math.pi/2, 10):
-    print(angle)
-    satellite.Q = loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0)
-    satellite.L = loas.utils.vector.tov(0,0,0)
-    satellite.iterate()
-    store.update(0,quaternion = satellite.Q)
+angle = 0
+satellite.Q = loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0)
+satellite.L = loas.utils.vector.tov(0,0,0)
+print(drag_torque.runSim()[0]*2/1e-11/16.32/7000**2)
+
 drag_torque.stop()
 drag_torque.join()
-
-print(np.array(store['parasite_drag'])[:,1]*2/1e-11/16.32/7000**2)
