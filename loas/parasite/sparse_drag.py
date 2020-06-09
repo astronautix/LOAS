@@ -125,6 +125,7 @@ def _sparse_drag_worker(
 
                 location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
                 normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
+                normal /= np.linalg.norm(normal)
                 rel_speed = sat_speed - loas.utils.vector.cross(sat_W, location)
 
                 normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
