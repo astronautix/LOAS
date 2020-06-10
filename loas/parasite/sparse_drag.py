@@ -122,29 +122,40 @@ def _sparse_drag_worker(
 
             # process torque given by actual hit point
             for location_sat, index_tri, origin, _ in locations_filtered.values():
-
                 location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
                 normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
-                rel_speed = sat_speed - loas.utils.vector.cross(sat_W, location)
+                part_speed_i = sat_speed - loas.utils.vector.cross(sat_W, location)
 
-                normal_rel_speed = (np.transpose(normal) @ rel_speed)[0,0]
+                normal_rel_speed = (np.transpose(normal) @ part_speed_i)[0,0]
                 if normal_rel_speed > 0:
                     # no actual collision
-                    continue
-
-                if random.random() < coll_epsilon:
+                    part_speed_r = part_speed_i
+                elif random.random() < coll_epsilon:
                     # specular reflexion
-                    delta_rel_speed = 2 * normal_rel_speed * normal / np.linalg.norm(normal)
+                    part_speed_r = part_speed_i - 2*normal_rel_speed*normal
                 else:
                     # diffuse reflexion
-                    normal_refl_speed = abs(scipy.stats.norm.rvs(
-                        scale = (scipy.constants.k*part_temp_r/part_mass)**(1/2)
-                    ))
-                    normal_refl_speed = math.sqrt(2*part_E_r/part_mass)*math.cos(math.asin(random.random()))
-                    delta_rel_speed = (normal_rel_speed+normal_refl_speed) * normal / np.linalg.norm(normal)
+                    Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.vector.tov(1,0,0))) #quaternion de passage sur la surface
+                    theta = math.asin(random.random()) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
+                    phi = 2*math.pi*random.random() #angle dans le plan (yOz)
 
-                momentum = part_mass*delta_rel_speed # elastic collision
+                    #SEMI-THERMAL
+                    #part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
+                    
+                    #KINETIC
+                    part_speed_r_norm = math.sqrt(2*part_E_r/part_mass)
+
+                    part_speed_r = Q_sfc.V2R(
+                        part_speed_r_norm*
+                        loas.utils.vector.tov(
+                            math.cos(theta),
+                            math.sin(theta)*math.cos(phi),
+                            math.sin(theta)*math.sin(phi)
+                        )
+                    )
+
+                momentum = part_mass*(part_speed_i-part_speed_r)
                 drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
                 torque += loas.utils.vector.cross(location, momentum/dt)
 

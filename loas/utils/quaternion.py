@@ -21,10 +21,10 @@ class Quaternion:
         :type d: float
         """
         norm = sqrt(a**2+b**2+c**2+d**2)
-        self.a = a/norm  #: first element of the Quaternion q_0
-        self.b = b/norm  #: second element of the Quaternion q_1
-        self.c = c/norm  #: third element of the Quaternion q_2
-        self.d = d/norm  #: forth element of the Quaternion q_3
+        self.a = float(a/norm)  #: first element of the Quaternion q_0
+        self.b = float(b/norm)  #: second element of the Quaternion q_1
+        self.c = float(c/norm)  #: third element of the Quaternion q_2
+        self.d = float(d/norm)  #: forth element of the Quaternion q_3
         self.tmsave = None
         self.tminvsave = None
 
