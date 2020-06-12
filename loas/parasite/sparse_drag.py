@@ -139,17 +139,11 @@ def _sparse_drag_worker(
                     # diffuse reflexion
                     Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.vector.tov(1,0,0))) #quaternion de passage sur la surface
 
-                    if model_type in (0,1):
-                        if model_type == 0:
-                            # KINETIC
-                            part_speed_r_norm = math.sqrt(2*part_E_r/part_mass)
-                        elif model_type == 1:
-                            # SEMI-THERMAL
-                            part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-
+                    if model_type == 0:
+                        # Pick norm and orientation
+                        part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
                         theta = math.asin(random.random()) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
                         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
-
                         part_speed_r = Q_sfc.V2R(
                             part_speed_r_norm*
                             loas.utils.vector.tov(
@@ -158,19 +152,8 @@ def _sparse_drag_worker(
                                 math.sin(theta)*math.sin(phi)
                             )
                         )
-
-                    elif model_type == 2:
-                        # FULL-THERMAL
-                        part_speed_r = Q_sfc.V2R(
-                            loas.utils.vector.tov(
-                                2*abs(scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))),
-                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass))),
-                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                            )
-                        )
-
-                    elif model_type == 3:
-                        # FULL-THERMAL FIXED
+                    elif model_type == 1:
+                        # Pick every components
                         part_speed_r = Q_sfc.V2R(
                             loas.utils.vector.tov(
                                 math.sqrt(-math.log(random.random()))/math.sqrt(3*part_mass/(4*part_E_r)),
@@ -243,7 +226,7 @@ class SparseDrag(Torque):
 
         super().__init__(satellite)
 
-        assert model_type in (0,1,2,3)
+        assert model_type in (0,1)
 
         self.sat_speed = loas.utils.vector.tov(0,0,sat_speed)
         self.sat_temp = sat_temp
