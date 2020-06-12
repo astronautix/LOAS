@@ -60,6 +60,7 @@ def _sparse_drag_worker(
             part_temp,
             coll_alpha,
             coll_epsilon,
+            model_type,
             dt
         ) = workers_input_queue.get()
         if not workers_running:
@@ -140,20 +141,42 @@ def _sparse_drag_worker(
                     theta = math.asin(random.random()) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
                     phi = 2*math.pi*random.random() #angle dans le plan (yOz)
 
-                    #SEMI-THERMAL
-                    #part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                    
-                    #KINETIC
-                    part_speed_r_norm = math.sqrt(2*part_E_r/part_mass)
+                    if model_type in (0,1):
+                        if model_type == 0:
+                            # KINETIC
+                            part_speed_r_norm = math.sqrt(2*part_E_r/part_mass)
+                        elif model_type == 1:
+                            # SEMI-THERMAL
+                            part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
 
-                    part_speed_r = Q_sfc.V2R(
-                        part_speed_r_norm*
-                        loas.utils.vector.tov(
-                            math.cos(theta),
-                            math.sin(theta)*math.cos(phi),
-                            math.sin(theta)*math.sin(phi)
+                        part_speed_r = Q_sfc.V2R(
+                            part_speed_r_norm*
+                            loas.utils.vector.tov(
+                                math.cos(theta),
+                                math.sin(theta)*math.cos(phi),
+                                math.sin(theta)*math.sin(phi)
+                            )
                         )
-                    )
+
+                    elif model_type == 2:
+                        # FULL-THERMAL
+                        part_speed_r = Q_sfc.V2R(
+                            loas.utils.vector.tov(
+                                2*abs(scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))),
+                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass))),
+                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
+                            )
+                        )
+
+                    elif model_type == 3:
+                        # FULL-THERMAL FIXED
+                        part_speed_r = Q_sfc.V2R(
+                            loas.utils.vector.tov(
+                                math.sqrt(-math.log(random.random()))/math.sqrt(3*part_mass/(4*part_E_r)),
+                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass))),
+                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
+                            )
+                        )
 
                 momentum = part_mass*(part_speed_i-part_speed_r)
                 drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
@@ -181,6 +204,7 @@ class SparseDrag(Torque):
         part_per_iteration = 100,
         coll_epsilon = 0.1,
         coll_alpha = 0.95,
+        model_type = 0,
         nb_workers = 1,
         max_simultaneous_part = 0,
         output = None,
@@ -205,6 +229,7 @@ class SparseDrag(Torque):
         :type coll_epsilon: float
         :param coll_alpha: Accomodation coefficient
         :type coll_alpha: float
+        :param model_type: Type of the reflexion model used. 0 : Kinetic model, 1 : Semi-thermal model, 2 : Full-thermal model
         :param nb_workers: Number of parallels workers (thus processes) that are launched for the simulation
         :type nb_workers: int
         :param max_simultaneous_part: Maximum number of particles simulated simultaneously. It can be used to reduce the RAM usage, but it is detrimental to execution speed. If set to 0, the limit is disabled
@@ -216,15 +241,19 @@ class SparseDrag(Torque):
         """
 
         super().__init__(satellite)
+
+        assert model_type in (0,1,2,3)
+
         self.sat_speed = loas.utils.vector.tov(0,0,sat_speed)
         self.sat_temp = sat_temp
         self.sat_bs_radius = np.linalg.norm(satellite.mesh.extents)/2
         self.part_density = part_density
         self.part_temp = part_temp
         self.part_mass = part_mol_mass/scipy.constants.N_A
-        self.coll_alpha = coll_alpha
         self.part_per_iteration = part_per_iteration
+        self.coll_alpha = coll_alpha
         self.coll_epsilon = coll_epsilon
+        self.model_type = model_type
 
         self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
@@ -262,7 +291,7 @@ class SparseDrag(Torque):
 
         for _ in range(self.nb_workers):
             self.workers_input_queue.put((
-                False, None, None, None, None, None, None, None, None, None, None
+                False, None, None, None, None, None, None, None, None, None, None, None
             ))
 
     def join(self):
@@ -299,6 +328,7 @@ class SparseDrag(Torque):
             self.part_temp,
             self.coll_alpha,
             self.coll_epsilon,
+            self.model_type,
             self.satellite.dt
         )
         for i in range(self.nb_workers):
