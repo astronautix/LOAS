@@ -161,6 +161,21 @@ def _sparse_drag_worker(
                                 scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
                             )
                         )
+                    elif model_type == 2:
+                        # Schamberg model
+                        theta_0 = math.pi/2
+                        theta_i = 0
+                        part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
+                        theta = 2*theta_0/math.pi*math.asin(random.random()) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
+                        phi = 2*math.pi*random.random() #angle dans le plan (yOz)
+                        part_speed_r = Q_sfc.V2R(
+                            part_speed_r_norm*
+                            loas.utils.vector.tov(
+                                math.cos(theta),
+                                math.sin(theta)*math.cos(phi),
+                                math.sin(theta)*math.sin(phi)
+                            )
+                        )
 
                 momentum = part_mass*(part_speed_i-part_speed_r)
                 drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
