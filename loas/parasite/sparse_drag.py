@@ -142,7 +142,7 @@ def _sparse_drag_worker(
                     if model_type == 0:
                         # Pick norm and orientation
                         part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                        theta = math.asin(random.random()) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
+                        theta = math.asin(2*random.random()-1) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
                         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
                         part_speed_r = Q_sfc.V2R(
                             part_speed_r_norm*
@@ -166,7 +166,7 @@ def _sparse_drag_worker(
                         theta_0 = math.pi/2
                         theta_i = 0
                         part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                        theta = 2*theta_0/math.pi*math.asin(random.random()) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
+                        theta = 2*theta_0/math.pi*math.asin(2*random.random()-1) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
                         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
                         part_speed_r = Q_sfc.V2R(
                             part_speed_r_norm*
