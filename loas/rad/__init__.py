@@ -3,6 +3,7 @@ import random
 import math
 import multiprocessing as mp
 import scipy.constants
+import copy
 
 import loas
 
@@ -21,7 +22,6 @@ def silent_interrupt(f):
 def _sparse_drag_worker(
     workers_input_queue,
     workers_output_queue,
-    create_batch_data_save,
     sat_mesh,
     sat_bs_radius,
     max_part_batch,
@@ -49,7 +49,7 @@ def _sparse_drag_worker(
 
     workers_running = True
     while workers_running:
-        (
+        args = (
             workers_running,
             sat_speed,
             sat_Q,
@@ -57,17 +57,12 @@ def _sparse_drag_worker(
             sat_temp,
             part_pending,
             part_mass,
-            part_temp,
-            dt
+            part_temp
         ) = workers_input_queue.get()
         if not workers_running:
             return
 
-        if create_batch_data_save:
-            batch_data_save = []
-        else:
-            batch_data_save = None
-
+        sat_speed = loas.utils.vector.tov(0,0,sat_speed)
         dir_sat = sat_Q.R2V(sat_speed)[:,0]
 
         def _getRandomOrigin():
@@ -79,8 +74,8 @@ def _sparse_drag_worker(
                 -2*sat_bs_radius
             )
 
-        torque  = loas.utils.vector.tov(0,0,0)
-        drag = 0
+        torque_dt  = loas.utils.vector.tov(0,0,0)
+        drag_dt = 0
 
         while part_pending > 0:
             # disable batching if max_part_batch to 0
@@ -120,13 +115,10 @@ def _sparse_drag_worker(
                 part_speed_i = sat_speed - loas.utils.vector.cross(sat_W, location)
                 part_speed_r = model(part_speed_i, normal, sat_temp, part_mass)
                 momentum = part_mass*(part_speed_i-part_speed_r)
-                drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
-                torque += loas.utils.vector.cross(location, momentum/dt)
+                drag_dt += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum)[0,0]
+                torque_dt += loas.utils.vector.cross(location, momentum)
 
-                if create_batch_data_save:
-                    batch_data_save.append((origin, location))
-
-        workers_output_queue.put((torque, drag, batch_data_save))
+        workers_output_queue.put((torque_dt, drag_dt))
 
 
 class RAD():
@@ -136,20 +128,11 @@ class RAD():
 
     def __init__(
         self,
-        satellite,
+        sat_mesh,
         model,
-        sat_speed = 7000,
-        sat_temp = 300,
-        part_density = 1e-11,
-        part_mol_mass = 0.016,
-        part_temp = 1800,
         part_per_iteration = 100,
-        coll_epsilon = 0.1,
-        coll_alpha = 0.95,
         nb_workers = 1,
-        max_simultaneous_part = 0,
-        output = None,
-        output_particle_data = False
+        max_simultaneous_part = 0
     ):
         """
         :param satellite: Satellite instance that represents simulation
@@ -180,22 +163,14 @@ class RAD():
         :param output_particle_data: If set to True, the simulation will send the origin point and collision point of every particle. It can lead to big ram usage.
         :type output_particle_data: bool
         """
-        self.satellite = satellite
-        self.sat_speed = loas.utils.vector.tov(0,0,sat_speed)
-        self.sat_temp = sat_temp
-        self.sat_bs_radius = np.linalg.norm(satellite.mesh.extents)/2
-        self.part_density = part_density
-        self.part_temp = part_temp
-        self.part_mass = part_mol_mass/scipy.constants.N_A
-        self.part_per_iteration = part_per_iteration
+        self.sat_mesh = sat_mesh
+        self.sat_bs_radius = np.linalg.norm(sat_mesh.extents)/2
         self.model = model
 
-        self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
         self.workers = []
         self.part_per_batch = int(max_simultaneous_part/nb_workers)
-        self.output = output
-        self.output_particle_data = output_particle_data
+        self.part_per_iteration = part_per_iteration
         self.workers_input_queue = mp.Queue()
         self.workers_output_queue = mp.Queue()
 
@@ -208,8 +183,7 @@ class RAD():
         args = (
             self.workers_input_queue,
             self.workers_output_queue,
-            self.output_particle_data,
-            self.satellite.mesh,
+            self.sat_mesh,
             self.sat_bs_radius,
             self.part_per_batch,
             self.model
@@ -227,7 +201,7 @@ class RAD():
 
         for _ in range(self.nb_workers):
             self.workers_input_queue.put((
-                False, None, None, None, None, None, None, None, None
+                False, None, None, None, None, None, None, None
             ))
 
     def join(self):
@@ -238,31 +212,57 @@ class RAD():
         for worker in self.workers:
             worker.join()
 
-    def runSim(self):
-        """
-        Get the torque computed by the class
-        """
+    def runSim(
+        self,
+        sat_W,
+        sat_Q,
+        sat_speed = 7000,
+        sat_temp = 300,
+        part_density = 1e-11,
+        part_mol_mass = 0.016,
+        part_temp = 1800,
+    ):
 
+        kwargs = locals()
+        kwargs.pop('self')
+
+        auto_start = False
         if len(self.workers) == 0:
-            raise RuntimeError("No workers are running! Call start() method beforehand")
+            print("The workers have not been started, I am starting them... (You might want to manually start the workers if calling repeatedly runSim to improve performances)")
+            auto_start = True
+            self.start()
 
-        nb_particles = max(int(round(random.normalvariate(
-            mu = self.part_per_iteration,
-            sigma = (self.part_per_iteration)**(1/2)
-        ))),0) # uniform distribution of particle in an infinite volume
+        for key, value in kwargs.items():
+            if isinstance(value, list):
+                temp_kwargs = copy.deepcopy(kwargs)
+                res = []
+                for i in value:
+                    assert not isinstance(i, list)
+                    temp_kwargs[key] = i
+                    res.append(self.runSim(**temp_kwargs))
+                return res
 
-        nb_part = round(nb_particles/self.nb_workers)
+        if auto_start:
+            print("Stopping the workers...")
+            self.stop()
+
+        return self._runSingleSim(**kwargs)
+
+    def _runSingleSim(self, sat_W, sat_Q, sat_speed, sat_temp, part_density, part_mol_mass, part_temp):
+
+        part_mass = part_mol_mass/scipy.constants.N_A
+        scale_factor = part_density / part_mass * sat_speed * math.pi*self.sat_bs_radius**2 /self.part_per_iteration
+        nb_part = round(self.part_per_iteration/self.nb_workers)
 
         args = (
             True,
-            self.sat_speed,
-            self.satellite.Q,
-            self.satellite.W,
-            self.sat_temp,
+            sat_speed,
+            sat_Q,
+            sat_W,
+            sat_temp,
             nb_part,
-            self.part_mass,
-            self.part_temp,
-            self.satellite.dt
+            part_mass,
+            part_temp
         )
         for i in range(self.nb_workers):
             self.workers_input_queue.put(args)
@@ -271,22 +271,12 @@ class RAD():
         drag = 0
         particle_data = []
         for _ in range(self.nb_workers):
-            torque_add, drag_add, particle_data_add = self.workers_output_queue.get()
+            torque_add, drag_add = self.workers_output_queue.get()
             torque += torque_add
             drag += drag_add
-            if particle_data_add is not None:
-                particle_data += particle_data_add
 
-        torque *= self.scale_factor
-        drag *= self.scale_factor
-
-        if self.output is not None:
-            self.output.update(
-                t = self.satellite.t,
-                parasite_drag = drag,
-                parasite_torque = torque,
-                parasite_particle_data = particle_data
-            )
+        torque *= scale_factor
+        drag *= scale_factor
 
         return drag, torque
 

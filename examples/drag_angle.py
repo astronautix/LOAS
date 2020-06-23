@@ -16,36 +16,21 @@ bounds = np.array(mesh.bounds)
 mesh.apply_translation(-(bounds[0] + bounds[1])/2) # center the satellite (the mass center should be on 0,0)
 mesh.apply_scale(.08) # rescale the model
 
-# define main objects
-store = loas.output.Store()
-satellite = loas.Satellite(
-    mesh,
-    dt,
-    I0 = I0,
-    L0 = loas.utils.vector.tov(0,0,0)
-)
-drag_torque = loas.rad.RAD(
-    satellite,
+drag = loas.rad.RAD(
+    sat_mesh = mesh,
     model = loas.rad.models.maxwell(0.10),
+    part_per_iteration = 1e4,
+    nb_workers = 6
+)
+drag.start()
+sat_Q = [loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0) for angle in np.linspace(0, math.pi/2, 10)]
+print(np.array(drag.runSim(
+    sat_W = loas.utils.vector.tov(0,0,0),
+    sat_Q = sat_Q,
     sat_speed = 7000,
     sat_temp = 300,
     part_density = 1e-11,
     part_mol_mass = 0.016,
-    part_temp = 1800,
-    part_per_iteration = 1e4,
-    nb_workers = 6,
-)
-satellite.addParasiteTorque( drag_torque )
-
-drag_torque.start()
-
-drag_coef  = []
-for angle in np.linspace(0, math.pi/2, 10):
-    print(angle)
-    satellite.Q = loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0)
-    drag_coef.append(drag_torque.runSim()[0]*2/1e-11/16.32/7000**2)
-
-drag_torque.stop()
-drag_torque.join()
-
-print(drag_coef)
+    part_temp = 1800
+))[:,0]*2/1e-11/16.32/7000**2)
+drag.stop()
