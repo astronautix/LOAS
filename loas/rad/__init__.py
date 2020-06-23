@@ -2,12 +2,11 @@ import numpy as np
 import random
 import math
 import multiprocessing as mp
-import scipy.stats
 import scipy.constants
 
 import loas
-from .torque import Torque
 
+from . import models
 
 def silent_interrupt(f):
     def f_silent(*args, **kwargs):
@@ -25,12 +24,13 @@ def _sparse_drag_worker(
     create_batch_data_save,
     sat_mesh,
     sat_bs_radius,
-    max_part_batch
+    max_part_batch,
+    model
 ):
     """
     Unitary worker for Sparse Atmospheric drag computation. Computes the collision of a certain amount of random particles on the mesh, adn sends back the torque
 
-    Every worker is launched only once. The trick is that, once starte, communicate with the rest of the program through Queues.
+    Every worker is launched only once. The trick is that, once started, communicate with the rest of the program through Queues.
     There are two queues, one for input, one for output. The worker waits for any input and once it gets it, runs the simulation, and outputs its parameters.
 
     :param workers_input_queue: Queue which is used to pass parameters to the worker
@@ -58,19 +58,10 @@ def _sparse_drag_worker(
             part_pending,
             part_mass,
             part_temp,
-            coll_alpha,
-            coll_epsilon,
-            model_type,
             dt
         ) = workers_input_queue.get()
         if not workers_running:
             return
-
-        part_temp_r = (1-coll_alpha)*(part_temp+part_mass/scipy.constants.k/3*np.linalg.norm(sat_speed)**2) + coll_alpha*sat_temp
-
-        part_E_i = 3/2*scipy.constants.k*part_temp + 1/2*part_mass*np.linalg.norm(sat_speed)**2
-        part_E_w = 3/2*scipy.constants.k*sat_temp
-        part_E_r = (1-coll_alpha)*part_E_i + coll_alpha*part_E_w
 
         if create_batch_data_save:
             batch_data_save = []
@@ -127,56 +118,7 @@ def _sparse_drag_worker(
                 normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
                 part_speed_i = sat_speed - loas.utils.vector.cross(sat_W, location)
-
-                normal_rel_speed = (np.transpose(normal) @ part_speed_i)[0,0]
-                if normal_rel_speed > 0:
-                    # no actual collision
-                    part_speed_r = part_speed_i
-                elif random.random() < coll_epsilon:
-                    # specular reflexion
-                    part_speed_r = part_speed_i - 2*normal_rel_speed*normal
-                else:
-                    # diffuse reflexion
-                    Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.vector.tov(1,0,0))) #quaternion de passage sur la surface
-
-                    if model_type == 0:
-                        # Pick norm and orientation
-                        part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                        theta = math.asin(2*random.random()-1) #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
-                        phi = 2*math.pi*random.random() #angle dans le plan (yOz)
-                        part_speed_r = Q_sfc.V2R(
-                            part_speed_r_norm*
-                            loas.utils.vector.tov(
-                                math.cos(theta),
-                                math.sin(theta)*math.cos(phi),
-                                math.sin(theta)*math.sin(phi)
-                            )
-                        )
-                    elif model_type == 1:
-                        # Pick every components
-                        part_speed_r = Q_sfc.V2R(
-                            loas.utils.vector.tov(
-                                math.sqrt(-math.log(random.random()))/math.sqrt(3*part_mass/(4*part_E_r)),
-                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass))),
-                                scipy.stats.norm.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                            )
-                        )
-                    elif model_type == 2:
-                        # Schamberg model
-                        theta_0 = math.pi/2
-                        theta_i = 0
-                        part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(2*part_E_r/(3*part_mass)))
-                        theta = 2*theta_0/math.pi*math.asin(2*random.random()-1) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
-                        phi = 2*math.pi*random.random() #angle dans le plan (yOz)
-                        part_speed_r = Q_sfc.V2R(
-                            part_speed_r_norm*
-                            loas.utils.vector.tov(
-                                math.cos(theta),
-                                math.sin(theta)*math.cos(phi),
-                                math.sin(theta)*math.sin(phi)
-                            )
-                        )
-
+                part_speed_r = model(part_speed_i, normal, sat_temp, part_mass)
                 momentum = part_mass*(part_speed_i-part_speed_r)
                 drag += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum/dt)[0,0]
                 torque += loas.utils.vector.cross(location, momentum/dt)
@@ -187,7 +129,7 @@ def _sparse_drag_worker(
         workers_output_queue.put((torque, drag, batch_data_save))
 
 
-class SparseDrag(Torque):
+class RAD():
     """
     Inherits form loas.Torque, defines the algorithms to compute Sparse Atmospheric drag.
     """
@@ -195,6 +137,7 @@ class SparseDrag(Torque):
     def __init__(
         self,
         satellite,
+        model,
         sat_speed = 7000,
         sat_temp = 300,
         part_density = 1e-11,
@@ -203,7 +146,6 @@ class SparseDrag(Torque):
         part_per_iteration = 100,
         coll_epsilon = 0.1,
         coll_alpha = 0.95,
-        model_type = 0,
         nb_workers = 1,
         max_simultaneous_part = 0,
         output = None,
@@ -238,11 +180,7 @@ class SparseDrag(Torque):
         :param output_particle_data: If set to True, the simulation will send the origin point and collision point of every particle. It can lead to big ram usage.
         :type output_particle_data: bool
         """
-
-        super().__init__(satellite)
-
-        assert model_type in (0,1)
-
+        self.satellite = satellite
         self.sat_speed = loas.utils.vector.tov(0,0,sat_speed)
         self.sat_temp = sat_temp
         self.sat_bs_radius = np.linalg.norm(satellite.mesh.extents)/2
@@ -250,9 +188,7 @@ class SparseDrag(Torque):
         self.part_temp = part_temp
         self.part_mass = part_mol_mass/scipy.constants.N_A
         self.part_per_iteration = part_per_iteration
-        self.coll_alpha = coll_alpha
-        self.coll_epsilon = coll_epsilon
-        self.model_type = model_type
+        self.model = model
 
         self.scale_factor = part_density / self.part_mass * satellite.dt * sat_speed * math.pi*self.sat_bs_radius**2 /part_per_iteration
         self.nb_workers = nb_workers
@@ -275,7 +211,8 @@ class SparseDrag(Torque):
             self.output_particle_data,
             self.satellite.mesh,
             self.sat_bs_radius,
-            self.part_per_batch
+            self.part_per_batch,
+            self.model
         )
 
         for _ in range(self.nb_workers):
@@ -290,7 +227,7 @@ class SparseDrag(Torque):
 
         for _ in range(self.nb_workers):
             self.workers_input_queue.put((
-                False, None, None, None, None, None, None, None, None, None, None, None
+                False, None, None, None, None, None, None, None, None
             ))
 
     def join(self):
@@ -325,9 +262,6 @@ class SparseDrag(Torque):
             nb_part,
             self.part_mass,
             self.part_temp,
-            self.coll_alpha,
-            self.coll_epsilon,
-            self.model_type,
             self.satellite.dt
         )
         for i in range(self.nb_workers):
@@ -346,12 +280,13 @@ class SparseDrag(Torque):
         torque *= self.scale_factor
         drag *= self.scale_factor
 
-        self.output.update(
-            t = self.satellite.t,
-            parasite_drag = drag,
-            parasite_torque = torque,
-            parasite_particle_data = particle_data
-        )
+        if self.output is not None:
+            self.output.update(
+                t = self.satellite.t,
+                parasite_drag = drag,
+                parasite_torque = torque,
+                parasite_particle_data = particle_data
+            )
 
         return drag, torque
 
