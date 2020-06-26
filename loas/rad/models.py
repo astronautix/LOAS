@@ -9,7 +9,7 @@ import loas
 def maxwell(epsilon):
     # See Sharipov, Rarefied gas dynamics, 4
     def model(part_speed_i, normal, sat_temp, part_mass):
-        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.vector.tov(1,0,0))) #quaternion de passage sur la surface
+        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0))) #quaternion de passage sur la surface
         if random.random() < epsilon:
             # specular reflexion
             normal_rel_speed = (np.transpose(normal) @ part_speed_i)[0,0]*normal
@@ -20,7 +20,7 @@ def maxwell(epsilon):
             phi = 2*math.pi*random.random() #angle dans le plan (yOz)
             part_speed_r = Q_sfc.V2R(
                 part_speed_r_norm*
-                loas.utils.vector.tov(
+                loas.utils.tov(
                     math.cos(theta),
                     math.sin(theta)*math.cos(phi),
                     math.sin(theta)*math.sin(phi)
@@ -32,13 +32,13 @@ def maxwell(epsilon):
 def schamberg(theta_, theta_i):
     def model(part_speed_i, normal, sat_temp, part_mass):
         # Schamberg model
-        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.vector.tov(1,0,0))) #quaternion de passage sur la surface
+        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0))) #quaternion de passage sur la surface
         part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(scipy.constants.k*sat_temp/part_mass))
         theta = 2*theta_0/math.pi*math.asin(2*random.random()-1) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
         part_speed_r = Q_sfc.V2R(
             part_speed_r_norm*
-            loas.utils.vector.tov(
+            loas.utils.tov(
                 math.cos(theta),
                 math.sin(theta)*math.cos(phi),
                 math.sin(theta)*math.sin(phi)
