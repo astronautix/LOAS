@@ -1,5 +1,12 @@
 import numpy as np
 from math import acos, sqrt, atan2, asin
+import trimesh
+import copy
+
+def projected_area(mesh, normal):
+    m = copy.deepcopy(mesh)
+    m.apply_transform(trimesh.transformations.projection_matrix((0,0,0),normal))
+    return m.area/2
 
 def tov(*args):
     return np.array([[i] for i in args], dtype='float64')
