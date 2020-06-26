@@ -25,7 +25,7 @@ drag = loas.rad.RAD(
 drag.start()
 sat_Q = [loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0) for angle in np.linspace(0, math.pi/2, 10)]
 print(np.array(drag.runSim(
-    sat_W = loas.utils.vector.tov(0,0,0),
+    sat_W = loas.utils.tov(0,0,0),
     sat_Q = sat_Q,
     sat_speed = 7000,
     sat_temp = 300,

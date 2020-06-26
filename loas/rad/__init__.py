@@ -4,6 +4,7 @@ import math
 import multiprocessing as mp
 import scipy.constants
 import copy
+import warnings
 
 import loas
 
@@ -62,7 +63,7 @@ def _sparse_drag_worker(
         if not workers_running:
             return
 
-        sat_speed = loas.utils.vector.tov(0,0,sat_speed)
+        sat_speed = loas.utils.tov(0,0,sat_speed)
         dir_sat = sat_Q.R2V(sat_speed)[:,0]
 
         def _getRandomOrigin():
@@ -74,7 +75,7 @@ def _sparse_drag_worker(
                 -2*sat_bs_radius
             )
 
-        torque_dt  = loas.utils.vector.tov(0,0,0)
+        torque_dt  = loas.utils.tov(0,0,0)
         drag_dt = 0
 
         while part_pending > 0:
@@ -86,7 +87,7 @@ def _sparse_drag_worker(
             part_pending -= part_batch
 
             origins = [_getRandomOrigin() for _ in range(part_batch)]
-            origins_sat = np.array([sat_Q.R2V(loas.utils.vector.tov(*origin))[:,0] for origin in origins])
+            origins_sat = np.array([sat_Q.R2V(loas.utils.tov(*origin))[:,0] for origin in origins])
             locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
                 ray_origins=origins_sat,
                 ray_directions=[dir_sat]*part_batch
@@ -109,14 +110,14 @@ def _sparse_drag_worker(
 
             # process torque given by actual hit point
             for location_sat, index_tri, origin, _ in locations_filtered.values():
-                location = sat_Q.V2R(loas.utils.vector.tov(*location_sat))
-                normal = sat_Q.V2R(loas.utils.vector.tov(*sat_mesh.face_normals[index_tri]))
+                location = sat_Q.V2R(loas.utils.tov(*location_sat))
+                normal = sat_Q.V2R(loas.utils.tov(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
-                part_speed_i = sat_speed - loas.utils.vector.cross(sat_W, location)
+                part_speed_i = sat_speed - loas.utils.cross(sat_W, location)
                 part_speed_r = model(part_speed_i, normal, sat_temp, part_mass)
                 momentum = part_mass*(part_speed_i-part_speed_r)
                 drag_dt += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum)[0,0]
-                torque_dt += loas.utils.vector.cross(location, momentum)
+                torque_dt += loas.utils.cross(location, momentum)
 
         workers_output_queue.put((torque_dt, drag_dt))
 
@@ -228,7 +229,7 @@ class RAD():
 
         auto_start = False
         if len(self.workers) == 0:
-            print("The workers have not been started, I am starting them... (You might want to manually start the workers if calling repeatedly runSim to improve performances)")
+            warnings.warn("The workers have not been started, I am starting them... (You might want to manually start the workers if calling repeatedly runSim to improve performances)")
             auto_start = True
             self.start()
 
@@ -267,7 +268,7 @@ class RAD():
         for i in range(self.nb_workers):
             self.workers_input_queue.put(args)
 
-        torque  = loas.utils.vector.tov(0,0,0)
+        torque  = loas.utils.tov(0,0,0)
         drag = 0
         particle_data = []
         for _ in range(self.nb_workers):
