@@ -222,6 +222,7 @@ class RAD():
         part_density = 1e-11,
         part_mol_mass = 0.016,
         part_temp = 1800,
+        with_drag_coef = False
     ):
 
         kwargs = locals()
@@ -249,7 +250,7 @@ class RAD():
 
         return self._runSingleSim(**kwargs)
 
-    def _runSingleSim(self, sat_W, sat_Q, sat_speed, sat_temp, part_density, part_mol_mass, part_temp):
+    def _runSingleSim(self, sat_W, sat_Q, sat_speed, sat_temp, part_density, part_mol_mass, part_temp, with_drag_coef):
 
         part_mass = part_mol_mass/scipy.constants.N_A
         scale_factor = part_density / part_mass * sat_speed * math.pi*self.sat_bs_radius**2 /self.part_per_iteration
@@ -278,6 +279,10 @@ class RAD():
 
         torque *= scale_factor
         drag *= scale_factor
+
+        if with_drag_coef:
+            drag_coef = drag*2/part_density/sat_speed**2/loas.utils.projected_area(self.sat_mesh, loas.utils.tol(sat_Q.R2V(loas.utils.tov(0,0,1))))
+            return drag, torque, drag_coef
 
         return drag, torque
 
