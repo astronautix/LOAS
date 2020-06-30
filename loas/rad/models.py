@@ -6,10 +6,20 @@ import scipy.constants
 
 import loas
 
+def get_Q_sfc(normal):
+    """
+    Returns the quaternion to pass from the reference frame to
+    the local surface frame where the x axis is normal to the surface
+    """
+    dir_rot = normal + loas.utils.tov(1,0,0)
+    if np.linalg.norm(dir_rot) < 1e-6:
+        dir_rot = loas.utils.tov(0,1,0)
+    return loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0)))
+
 def maxwell(epsilon):
     # See Sharipov, Rarefied gas dynamics, 4
     def model(part_speed_i, normal, sat_temp, part_mass):
-        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0))) #quaternion de passage sur la surface
+        Q_sfc = get_Q_sfc(normal) #quaternion de passage sur la surface
         if random.random() < epsilon:
             # specular reflexion
             normal_rel_speed = (np.transpose(normal) @ part_speed_i)[0,0]*normal
@@ -32,7 +42,7 @@ def maxwell(epsilon):
 def schamberg(theta_, theta_i):
     def model(part_speed_i, normal, sat_temp, part_mass):
         # Schamberg model
-        Q_sfc = loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0))) #quaternion de passage sur la surface
+        Q_sfc = get_Q_sfc(normal)
         part_speed_r_norm = scipy.stats.maxwell.rvs(scale = math.sqrt(scipy.constants.k*sat_temp/part_mass))
         theta = 2*theta_0/math.pi*math.asin(2*random.random()-1) + theta_i #angle par rapport à la normale à la surface (donc le vecteur (1,0,0)) dans le repère de la sfc
         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
