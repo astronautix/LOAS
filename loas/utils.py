@@ -1,14 +1,25 @@
 import numpy as np
-from math import acos, sqrt, atan2, asin
+from math import acos, sqrt, atan2, asin,pi
 import trimesh
 import copy
+import shapely.ops
+import shapely.geometry
 import memoization
+
+import loas
 
 @memoization.cached
 def projected_area(mesh, normal):
+    normal = normal/np.linalg.norm(normal)
     m = copy.deepcopy(mesh)
-    m.apply_transform(trimesh.transformations.projection_matrix((0,0,0),normal))
-    return m.area/2
+    dir_rot = normal + loas.utils.tov(1,0,0)
+    if np.linalg.norm(dir_rot) < 1e-6:
+        dir_rot = loas.utils.tov(0,1,0)
+    m.apply_transform(trimesh.transformations.rotation_matrix(pi, loas.utils.tol(dir_rot)))
+    m.apply_transform(trimesh.transformations.projection_matrix((0,0,0),(1,0,0)))
+    polygons = [shapely.geometry.Polygon(triangle[:,1:]) for triangle in m.triangles]
+    poly_merged = shapely.ops.unary_union(polygons)
+    return poly_merged.area
 
 def tov(*args):
     return np.array([[i] for i in args], dtype='float64')
