@@ -281,7 +281,11 @@ class RAD():
         drag *= scale_factor
 
         if with_drag_coef:
-            drag_coef = drag*2/part_density/sat_speed**2/loas.utils.projected_area(self.sat_mesh, loas.utils.tol(sat_Q.R2V(loas.utils.tov(0,0,1))))
+            S_p = loas.utils.projected_area(
+                self.sat_mesh,
+                sat_Q.R2V(loas.utils.tov(0,0,1))
+            )
+            drag_coef = drag*2/part_density/sat_speed**2/S_p
             return drag, torque, drag_coef
 
         return drag, torque
