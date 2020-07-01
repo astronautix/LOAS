@@ -17,7 +17,11 @@ def projected_area(mesh, normal):
         dir_rot = loas.utils.tov(0,1,0)
     m.apply_transform(trimesh.transformations.rotation_matrix(pi, loas.utils.tol(dir_rot)))
     m.apply_transform(trimesh.transformations.projection_matrix((0,0,0),(1,0,0)))
-    polygons = [shapely.geometry.Polygon(triangle[:,1:]) for triangle in m.triangles]
+    polygons = [
+        shapely.geometry.Polygon(triangle[:,1:])
+        for index_triangle, triangle in enumerate(m.triangles)
+        if np.linalg.norm(m.face_normals[index_triangle] - np.array([1,0,0])) < 1e-6
+    ]
     poly_merged = shapely.ops.unary_union(polygons)
     return poly_merged.area
 
