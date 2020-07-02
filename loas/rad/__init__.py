@@ -180,7 +180,8 @@ class RAD():
         """
         Starts the workers
         """
-
+        self.stop()
+        self.join()
         args = (
             self.workers_input_queue,
             self.workers_output_queue,
@@ -212,6 +213,7 @@ class RAD():
 
         for worker in self.workers:
             worker.join()
+        self.workers = []
 
     def runSim(
         self,
