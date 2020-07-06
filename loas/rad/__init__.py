@@ -191,8 +191,6 @@ class RAD():
         """
         Starts the workers
         """
-        self.stop()
-        self.join()
         args = (
             self.workers_input_queue,
             self.workers_output_queue,
