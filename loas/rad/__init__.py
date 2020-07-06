@@ -48,10 +48,20 @@ def _sparse_drag_worker(
     :param max_part_batch: int
     """
 
-    sat_bs_radius = sat_mesh.bounding_sphere.extents/2
-    sat_bs_center = sat_mesh.bounding_sphere.center_mass
-    print(2)
+    sat_bs_radius = sat_mesh.bounding_sphere.extents[0]/2
+    sat_bs_center = loas.utils.tov(*sat_mesh.bounding_sphere.center_mass)
     workers_running = True
+
+    def _getRandomOrigin():
+        r = sat_bs_radius*math.sqrt(random.random())
+        theta = 2*math.pi*random.random()
+        rel_pos = loas.utils.tov(
+            r*math.cos(theta),
+            r*math.sin(theta),
+            -2*sat_bs_radius
+        )
+        return rel_pos + sat_bs_center
+
     while workers_running:
         args = (
             workers_running,
@@ -64,25 +74,11 @@ def _sparse_drag_worker(
             part_temp,
             part_density
         ) = workers_input_queue.get()
-        print(workers_running, sat_temp)
         if not workers_running:
             return
 
-        print(workers_running)
-
         sat_speed = loas.utils.tov(0,0,sat_speed)
         dir_sat = sat_Q.R2V(sat_speed)[:,0]
-
-        def _getRandomOrigin():
-            r = sat_bs_radius*math.sqrt(random.random())
-            theta = 2*math.pi*random.random()
-            rel_pos = np.array([
-                r*math.cos(theta),
-                r*math.sin(theta),
-                -2*sat_bs_radius
-            ])
-            return rel_pos + sat_bs_center
-
         torque_dt  = loas.utils.tov(0,0,0)
         drag_dt = 0
 
@@ -94,8 +90,7 @@ def _sparse_drag_worker(
                 part_batch = part_pending
             part_pending -= part_batch
 
-            origins = [_getRandomOrigin() for _ in range(part_batch)]
-            origins_sat = np.array([sat_Q.R2V(loas.utils.tov(*origin))[:,0] for origin in origins])
+            origins_sat = np.array([sat_Q.R2V(_getRandomOrigin())[:,0] for _ in range(part_batch)])
             locations, indexes_ray, indexes_tri = sat_mesh.ray.intersects_location(
                 ray_origins=origins_sat,
                 ray_directions=[dir_sat]*part_batch
@@ -111,13 +106,13 @@ def _sparse_drag_worker(
                 dist = (origin_sat[0] - location[0])**2 + (origin_sat[1] - location[1])**2 + (origin_sat[2] - location[2])**2
 
                 if not index_ray in locations_filtered:
-                    locations_filtered[index_ray] = (location, index_tri, origin, dist)
+                    locations_filtered[index_ray] = (location, index_tri, dist)
 
-                elif locations_filtered[index_ray][3] > dist:
-                    locations_filtered[index_ray] = (location, index_tri, origin, dist)
+                elif locations_filtered[index_ray][2] > dist:
+                    locations_filtered[index_ray] = (location, index_tri, dist)
 
             # process torque given by actual hit point
-            for location_sat, index_tri, origin, _ in locations_filtered.values():
+            for location_sat, index_tri, _ in locations_filtered.values():
                 location = sat_Q.V2R(loas.utils.tov(*location_sat))
                 normal = sat_Q.V2R(loas.utils.tov(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
@@ -279,7 +274,6 @@ class RAD():
         )
         for i in range(self.nb_workers):
             self.workers_input_queue.put(args)
-            print('lancé')
 
         torque  = loas.utils.tov(0,0,0)
         drag = 0
