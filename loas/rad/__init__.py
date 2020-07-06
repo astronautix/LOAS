@@ -98,18 +98,16 @@ def _sparse_drag_worker(
 
             #filter only for closest point
             locations_filtered = {}
-            for index, location in enumerate(locations):
+            for index, location_sat in enumerate(locations):
                 index_tri = indexes_tri[index]
                 index_ray = indexes_ray[index]
                 origin_sat = origins_sat[index_ray]
-                origin = origins[index_ray]
-                dist = (origin_sat[0] - location[0])**2 + (origin_sat[1] - location[1])**2 + (origin_sat[2] - location[2])**2
+                dist = (origin_sat[0] - location_sat[0])**2 + (origin_sat[1] - location_sat[1])**2 + (origin_sat[2] - location_sat[2])**2
 
                 if not index_ray in locations_filtered:
-                    locations_filtered[index_ray] = (location, index_tri, dist)
-
+                    locations_filtered[index_ray] = (location_sat, index_tri, dist)
                 elif locations_filtered[index_ray][2] > dist:
-                    locations_filtered[index_ray] = (location, index_tri, dist)
+                    locations_filtered[index_ray] = (location_sat, index_tri, dist)
 
             # process torque given by actual hit point
             for location_sat, index_tri, _ in locations_filtered.values():
