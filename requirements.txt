@@ -8,3 +8,4 @@ trimesh==3.6.29
 Rtree==0.9.4
 networkx==2.4
 shapely==1.7.0
+memoization==0.3.1
