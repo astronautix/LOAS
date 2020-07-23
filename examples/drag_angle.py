@@ -6,10 +6,6 @@ import trimesh
 import loas
 import math
 
-# simulation parameters
-dt = 1/25 # Simulation time step
-I0 = np.diag((200,200,200)) # Satellite inertia tensor
-
 # load mesh object and resize it
 mesh = trimesh.load_mesh("./models/slab.stl")
 bounds = np.array(mesh.bounds)
