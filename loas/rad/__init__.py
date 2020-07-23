@@ -58,7 +58,7 @@ def _sparse_drag_worker(
         rel_pos = loas.utils.tov(
             r*math.cos(theta),
             r*math.sin(theta),
-            -2*sat_bs_radius
+            2*sat_bs_radius
         )
         return rel_pos + sat_bs_center
 
@@ -77,8 +77,8 @@ def _sparse_drag_worker(
         if not workers_running:
             return
 
-        sat_speed = loas.utils.tov(0,0,sat_speed)
-        dir_sat = sat_Q.R2V(sat_speed)[:,0]
+        part_speed = loas.utils.tov(0,0,-sat_speed)
+        dir_sat = sat_Q.R2V(part_speed)[:,0]
         torque_dt  = loas.utils.tov(0,0,0)
         drag_dt = 0
 
@@ -114,10 +114,10 @@ def _sparse_drag_worker(
                 location = sat_Q.V2R(loas.utils.tov(*location_sat))
                 normal = sat_Q.V2R(loas.utils.tov(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
-                part_speed_i = sat_speed - loas.utils.cross(sat_W, location)
+                part_speed_i = part_speed - loas.utils.cross(sat_W, location)
                 part_speed_r = model(part_speed_i, normal, sat_temp, part_mass)
                 momentum = part_mass*(part_speed_i-part_speed_r)
-                drag_dt += ((np.transpose(sat_speed)/np.linalg.norm(sat_speed)) @ momentum)[0,0]
+                drag_dt += ((np.transpose(part_speed)/np.linalg.norm(part_speed)) @ momentum)[0,0]
                 torque_dt += loas.utils.cross(location, momentum)
 
         scale_factor = part_density / part_mass * sat_speed * math.pi*sat_bs_radius**2 / part_per_iteration
