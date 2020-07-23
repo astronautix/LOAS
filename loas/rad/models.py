@@ -14,7 +14,7 @@ def get_Q_sfc(normal):
     dir_rot = normal + loas.utils.tov(1,0,0)
     if np.linalg.norm(dir_rot) < 1e-6:
         dir_rot = loas.utils.tov(0,1,0)
-    return loas.utils.Quaternion(0, *(normal + loas.utils.tov(1,0,0)))
+    return loas.utils.Quaternion(0, *dir_rot)
 
 def maxwell(epsilon):
     # See Sharipov, Rarefied gas dynamics, 4
