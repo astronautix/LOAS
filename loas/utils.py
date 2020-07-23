@@ -54,6 +54,8 @@ class Quaternion:
         :type d: float
         """
         norm = sqrt(a**2+b**2+c**2+d**2)
+        if a < 0: # from the point of view of rotations, Q is equivalent to -Q, so we normalize such as a >= 0 and thus 0 <= Q.angle <= math.pi
+            norm = -norm
         self.a = float(a/norm)  #: first element of the Quaternion q_0
         self.b = float(b/norm)  #: second element of the Quaternion q_1
         self.c = float(c/norm)  #: third element of the Quaternion q_2
