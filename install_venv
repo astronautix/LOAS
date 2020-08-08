@@ -1,0 +1,26 @@
+LOAS_PATH=$(pwd)
+
+cd $LOAS_PATH
+rm -rf venv
+rm -rf spatialindex-src-1.8.5.tar.gz
+
+cd $LOAS_PATH
+python3 -m venv venv
+cd venv/lib/pythonsource venv/bin/activate/site-packages
+ln -s $LOAS_PATH/loas
+
+cd $LOAS_PATH
+wget http://download.osgeo.org/libspatialindex/spatialindex-src-1.8.5.tar.gz
+tar xzf spatialindex-src-1.8.5.tar.gz
+cd spatialindex-src-1.8.5
+./configure --prefix=$LOAS_PATH/venv
+make
+make install
+cd $LOAS_PATH
+echo 'export SPATIALINDEX_C_LIBRARY=$VIRTUAL_ENV/lib/libspatialindex_c.so' >> venv/bin/activate
+deactivate
+source venv/bin/activate
+pip install -r requirements.txt
+
+cd $LOAS_PATH
+rm -rf spatialindex-src-1.8.5 spatialindex-src-1.8.5.tar.gz

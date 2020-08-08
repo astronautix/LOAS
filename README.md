@@ -5,9 +5,27 @@ WIP Satellite attitude simulator, equipped with reaction wheels and magnetic tor
 
 ## Installation
 
-If there are missing libraries, please open an issue!
+### Virtual Environement install (recommended)
 
-### Global install (needs sudo access)
+A bash script is provided to build the proper virtual environment for loas:
+
+```bash
+cd LOAS && ./install_venv
+```
+
+Then activate the virtual environment to use loas:
+
+```bash
+$ source venv/bin/activate
+$ python3
+Python 3.7.3 (default, Jul 25 2020, 13:03:44)
+[GCC 8.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import loas
+>>>
+```
+
+### Global install (easy way, requires sudo access)
 
 - **System libraries:**
 ```bash
@@ -19,21 +37,14 @@ sudo apt install libspatialindex-dev
 pip3 install -r requirements.txt
 ```
 
-### Virtual Environement install
+loas becomes accessible from the folder `LOAS`:
 
 ```bash
-cd LOAS
-python3 -m venv venv
-source venv/bin/activate
-wget http://download.osgeo.org/libspatialindex/spatialindex-src-1.8.5.tar.gz
-tar xzf spatialindex-src-1.8.5.tar.gz
-cd spatialindex-src-1.8.5
-./configure --prefix=$VIRTUAL_ENV
-make
-make install
-cd ..
-rm -rf spatialindex-src-1.8.5 spatialindex-src-1.8.5.tar.gz
-echo 'export SPATIALINDEX_C_LIBRARY=$VIRTUAL_ENV/lib/libspatialindex_c.so' >> venv/bin/activate
-source venv/bin/activate
-pip install -r requirements.txt
+$ cd LOAS
+$ python3
+Python 3.7.3 (default, Jul 25 2020, 13:03:44)
+[GCC 8.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import loas
+>>>
 ```
