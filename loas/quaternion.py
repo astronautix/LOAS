@@ -103,9 +103,9 @@ class Quat:
         """
         Return the normalized rotation axis of the quaternion
         """
-        res = np.array([[self.b],[self.c],[self.d]])
+        res = loas.Vec(self.b,self.c,self.d)
         if np.linalg.norm(res) == 0:
-            return np.array([[1],[0],[0]])
+            return loas.Vec(1,0,0)
         return res/np.linalg.norm(res)
 
     def angle(self):
@@ -139,4 +139,8 @@ class Quat:
         It is bad to use euler angles.
         """
         q0,q1,q2,q3 = self.a,self.b,self.c,self.d
-        return np.array([[atan2(2*(q0*q1+q2*q3),1-2*(q1**2+q2**2))],[asin(2*(q0*q2-q3*q1))],[atan2(2*(q0*q3+q1*q2),1-2*(q2**2+q3**2))]])
+        return loas.Vec(
+            atan2(2*(q0*q1+q2*q3),1-2*(q1**2+q2**2)),
+            asin(2*(q0*q2-q3*q1)),
+            atan2(2*(q0*q3+q1*q2),1-2*(q2**2+q3**2))
+        )
