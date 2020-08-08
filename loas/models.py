@@ -11,10 +11,10 @@ def get_Q_sfc(normal):
     Returns the quaternion to pass from the reference frame to
     the local surface frame where the x axis is normal to the surface
     """
-    dir_rot = normal + loas.utils.tov(1,0,0)
+    dir_rot = normal + loas.Vec(1,0,0)
     if np.linalg.norm(dir_rot) < 1e-6:
-        dir_rot = loas.utils.tov(0,1,0)
-    return loas.utils.Quaternion(0, *dir_rot)
+        dir_rot = loas.Vec(0,1,0)
+    return loas.Quat(0, *dir_rot)
 
 def maxwell(epsilon):
     # See Sharipov, Rarefied gas dynamics, 4
@@ -30,7 +30,7 @@ def maxwell(epsilon):
             phi = 2*math.pi*random.random() #angle dans le plan (yOz)
             part_speed_r = Q_sfc.V2R(
                 part_speed_r_norm*
-                loas.utils.tov(
+                loas.Vec(
                     math.cos(theta),
                     math.sin(theta)*math.cos(phi),
                     math.sin(theta)*math.sin(phi)
@@ -48,7 +48,7 @@ def schamberg(theta_, theta_i):
         phi = 2*math.pi*random.random() #angle dans le plan (yOz)
         part_speed_r = Q_sfc.V2R(
             part_speed_r_norm*
-            loas.utils.tov(
+            loas.Vec(
                 math.cos(theta),
                 math.sin(theta)*math.cos(phi),
                 math.sin(theta)*math.sin(phi)

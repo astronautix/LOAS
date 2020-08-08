@@ -49,13 +49,13 @@ def _sparse_drag_worker(
     """
 
     sat_bs_radius = sat_mesh.bounding_sphere.extents[0]/2
-    sat_bs_center = loas.utils.tov(*sat_mesh.bounding_sphere.center_mass)
+    sat_bs_center = loas.Vec(*sat_mesh.bounding_sphere.center_mass)
     workers_running = True
 
     def _getRandomOrigin():
         r = sat_bs_radius*math.sqrt(random.random())
         theta = 2*math.pi*random.random()
-        rel_pos = loas.utils.tov(
+        rel_pos = loas.Vec(
             r*math.cos(theta),
             r*math.sin(theta),
             2*sat_bs_radius
@@ -77,9 +77,9 @@ def _sparse_drag_worker(
         if not workers_running:
             return
 
-        part_speed = loas.utils.tov(0,0,-sat_speed)
+        part_speed = loas.Vec(0,0,-sat_speed)
         dir_sat = sat_Q.R2V(part_speed)[:,0]
-        torque_dt  = loas.utils.tov(0,0,0)
+        torque_dt  = loas.Vec(0,0,0)
         drag_dt = 0
 
         while part_pending > 0:
@@ -111,14 +111,14 @@ def _sparse_drag_worker(
 
             # process torque given by actual hit point
             for location_sat, index_tri, _ in locations_filtered.values():
-                location = sat_Q.V2R(loas.utils.tov(*location_sat))
-                normal = sat_Q.V2R(loas.utils.tov(*sat_mesh.face_normals[index_tri]))
+                location = sat_Q.V2R(loas.Vec(*location_sat))
+                normal = sat_Q.V2R(loas.Vec(*sat_mesh.face_normals[index_tri]))
                 normal /= np.linalg.norm(normal)
-                part_speed_i = part_speed - loas.utils.cross(sat_W, location)
+                part_speed_i = part_speed - sat_W.cross(location)
                 part_speed_r = model(part_speed_i, normal, sat_temp, part_mass)
                 momentum = part_mass*(part_speed_i-part_speed_r)
                 drag_dt += ((np.transpose(part_speed)/np.linalg.norm(part_speed)) @ momentum)[0,0]
-                torque_dt += loas.utils.cross(location, momentum)
+                torque_dt += location.cross(momentum)
 
         scale_factor = part_density / part_mass * sat_speed * math.pi*sat_bs_radius**2 / part_per_iteration
         torque = torque_dt * scale_factor
@@ -273,7 +273,7 @@ class RAD():
         for i in range(self.nb_workers):
             self.workers_input_queue.put(args)
 
-        torque  = loas.utils.tov(0,0,0)
+        torque  = loas.Vec(0,0,0)
         drag = 0
         particle_data = []
         for _ in range(self.nb_workers):
@@ -282,9 +282,9 @@ class RAD():
             drag += drag_add
 
         if with_drag_coef:
-            S_p = loas.utils.projected_area(
+            S_p = loas.projected_area(
                 self.sat_mesh,
-                sat_Q.R2V(loas.utils.tov(0,0,1))
+                sat_Q.R2V(loas.Vec(0,0,1))
             )
             drag_coef = drag*2/part_density/sat_speed**2/S_p
             return drag, torque, drag_coef

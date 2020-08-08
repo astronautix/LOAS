@@ -12,16 +12,16 @@ bounds = np.array(mesh.bounds)
 mesh.apply_translation(-(bounds[0] + bounds[1])/2) # center the satellite (the mass center should be on 0,0)
 mesh.apply_scale(.08) # rescale the model
 
-drag = loas.rad.RAD(
+drag = loas.RAD(
     sat_mesh = mesh,
-    model = loas.rad.models.maxwell(0.10),
+    model = loas.models.maxwell(0.10),
     part_per_iteration = 1e4,
     nb_workers = 6
 )
 drag.start()
-sat_Q = [loas.utils.Quaternion(math.cos(angle/2), math.sin(angle/2), 0, 0) for angle in np.linspace(0, math.pi/2, 10)]
+sat_Q = [loas.Quat(math.cos(angle/2), math.sin(angle/2), 0, 0) for angle in np.linspace(0, math.pi/2, 10)]
 print(drag.runSim(
-    sat_W = loas.utils.tov(0,0,0),
+    sat_W = loas.Vec(0,0,0),
     sat_Q = sat_Q,
     sat_speed = 7000,
     sat_temp = 300,
