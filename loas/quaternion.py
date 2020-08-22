@@ -112,7 +112,7 @@ class Quat:
         """
         Returns the rotation angle of the quaternion
         """
-        return acos(max(-1,min(self.a,1)))*2
+        return math.acos(max(-1,min(self.a,1)))*2
 
     def V2R(self,vec):
         """
@@ -140,7 +140,7 @@ class Quat:
         """
         q0,q1,q2,q3 = self.a,self.b,self.c,self.d
         return loas.Vec(
-            atan2(2*(q0*q1+q2*q3),1-2*(q1**2+q2**2)),
-            asin(2*(q0*q2-q3*q1)),
-            atan2(2*(q0*q3+q1*q2),1-2*(q2**2+q3**2))
+            math.atan2(2*(q0*q1+q2*q3),1-2*(q1**2+q2**2)),
+            math.asin(2*(q0*q2-q3*q1)),
+            math.atan2(2*(q0*q3+q1*q2),1-2*(q2**2+q3**2))
         )
