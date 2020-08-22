@@ -8,3 +8,6 @@ class Vec(np.ndarray):
 
     def cross(self,b):
         return np.cross(self, b, axisa=0, axisb=0,axisc=0)
+
+    def normalized(self):
+        return self/np.linalg.norm(self)
