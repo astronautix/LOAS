@@ -41,7 +41,7 @@ class Quat:
         """
         Returns a numpy array representation of the quaternion
         """
-        return loas.Vec([[self.a],[self.b],[self.c],[self.d]])
+        return loas.Vec(self.a,self.b,self.c,self.d)
 
     def __mul__(self,value):
         """
