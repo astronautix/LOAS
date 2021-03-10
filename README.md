@@ -1,7 +1,10 @@
 # LOAS - Low Orbit Attitude Simulator (WIP)
+
+[![Documentation Status](https://readthedocs.org/projects/loas/badge/?version=latest)](https://loas.readthedocs.io/en/latest/?badge=latest)
+
 WIP Satellite attitude simulator, equipped with reaction wheels and magnetic torquers
 
-[Full documentation here](https://loas.feg.ovh/)
+[Full documentation here](https://loas.readthedocs.io/)
 
 ## Installation
 

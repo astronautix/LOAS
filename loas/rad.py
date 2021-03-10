@@ -145,33 +145,16 @@ class RAD():
         max_simultaneous_part = 0
     ):
         """
-        :param satellite: Satellite instance that represents simulation
-        :type satellite: loas.Satellite
-        :param sat_speed: Satellite speed relative to the ionosphere
-        :param sat_speed: float
-        :param sat_temp: Satellite temperature
-        :param sat_temp: float
-        :param part_density: Particle density
-        :type part_density: int
-        :param part_mol_mass: Molar mass of the particles
-        :type part_mol_mass: float
-        :param part_temp: Temperature of the particles
-        :type part_temp: float
+        :param sat_mesh: Mesh of the satellite
+        :type sat_mesh: trimesh.Trimesh
+        :param model: A call of one of the loas.models functions
+        :type model: loas.models.*()
         :param part_per_iteration: Average number of particles simulated at each iteration
         :type part_per_iteration: int
-        :param coll_epsilon: Ratio of specular reflexion
-        :type coll_epsilon: float
-        :param coll_alpha: Accomodation coefficient
-        :type coll_alpha: float
-        :param model_type: Type of the reflexion model used. 0 : Kinetic model, 1 : Semi-thermal model, 2 : Full-thermal model
         :param nb_workers: Number of parallels workers (thus processes) that are launched for the simulation
         :type nb_workers: int
         :param max_simultaneous_part: Maximum number of particles simulated simultaneously. It can be used to reduce the RAM usage, but it is detrimental to execution speed. If set to 0, the limit is disabled
         :param max_simultaneous_part: int
-        :param output: Type of output to send simulation data. If set to None, it will output nothing
-        :type output: loas.output.Output
-        :param output_particle_data: If set to True, the simulation will send the origin point and collision point of every particle. It can lead to big ram usage.
-        :type output_particle_data: bool
         """
         self.sat_mesh = sat_mesh
         self.model = model
