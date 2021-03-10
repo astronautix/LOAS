@@ -17,6 +17,11 @@ def get_Q_sfc(normal):
     return loas.Quat(0, *dir_rot)
 
 def maxwell(epsilon):
+    """
+    Maxwell reflexion model
+    :param epsilon: Specular coefficient
+    :type epsilon: float
+    """
     # See Sharipov, Rarefied gas dynamics, 4
     def model(part_speed_i, normal, sat_temp, part_mass):
         Q_sfc = get_Q_sfc(normal) #quaternion de passage sur la surface
@@ -40,6 +45,10 @@ def maxwell(epsilon):
     return model
 
 def schamberg(theta_, theta_i):
+    """
+    /!\ UNTESTED /!\
+    Schamberg reflexion model
+    """
     def model(part_speed_i, normal, sat_temp, part_mass):
         # Schamberg model
         Q_sfc = get_Q_sfc(normal)
@@ -58,6 +67,14 @@ def schamberg(theta_, theta_i):
     return model
 
 def schamberg_compose(schambergs, coefs):
+    """
+    /!\ UNTESTED /!\
+    Reflexion model made from the linear composition of several schamberg models
+    :param schambergs: List of schamberg reflexion models
+    :type schambergs: list
+    :param coefs: List of the coefficients
+    :type coefs: list of floats
+    """
     def model(*args, **kwargs):
         used_schamberg = random.choice(schambergs, coefs)
         return used_schamberg(*args,**kwargs)

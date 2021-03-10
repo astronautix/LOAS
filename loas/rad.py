@@ -10,7 +10,11 @@ import loas
 
 from . import models
 
-def silent_interrupt(f):
+def _silent_interrupt(f):
+    """
+    Utilitary decorator used for _sparse_drag_worker
+    Catch all KeyboardInterrupt
+    """
     def f_silent(*args, **kwargs):
         try:
             f(*args, **kwargs)
@@ -19,7 +23,7 @@ def silent_interrupt(f):
     return f_silent
 
 
-@silent_interrupt
+@_silent_interrupt
 def _sparse_drag_worker(
     workers_input_queue,
     workers_output_queue,
@@ -228,6 +232,29 @@ class RAD():
         part_temp = 1800,
         with_drag_coef = False
     ):
+        """
+        Run the simulation
+        The arguments can be either a single element of a list.
+        If a list is given, the simulation will be ran over each value of this list.
+        If several arguments are given as lists, the simulation will be ran for each combination possible.
+
+        :param sat_W: Rotation vector of the satellite
+        :type sat_W: loas.Vec
+        :param sat_Q: Attitude quaternion of the satellite
+        :type sat_Q: loas.Quat
+        :param sat_speed: Speed vector of the satellite, relative to the atmosphere
+        :param sat_speed: loas.Vec
+        :param sat_temp: Temperature of the satellite
+        :type sat_temp: float
+        :param part_density: Density of the particles. Note: It only has a linear effect on the result. By design, the simulation does not depends on the density.
+        :type part_density: float
+        :param part_mol_mass: Molar mass of the atmospheric particles.
+        :type part_mol_mass: float
+        :param part_temp: Temperature of the atmospheric particles.
+        :type part_temp: float
+        :param with_drag_coef: Set this to True if you want the simulation to returns the drag coefficient computed with the satellite's projected area. /!\ : it might slows down the simulation.
+        :type with_drag_coef: boolean
+        """
 
         kwargs = locals()
         kwargs.pop('self')
@@ -255,6 +282,11 @@ class RAD():
         return self._runSingleSim(**kwargs)
 
     def _runSingleSim(self, sat_W, sat_Q, sat_speed, sat_temp, part_density, part_mol_mass, part_temp, with_drag_coef):
+        """
+        Utilitary function that runs a single simultation
+        runSim is a user-friendly wrapper of this simulation
+        """
+
 
         part_mass = part_mol_mass/scipy.constants.N_A
         nb_part = round(self.part_per_iteration/self.nb_workers)
@@ -282,7 +314,7 @@ class RAD():
             drag += drag_add
 
         if with_drag_coef:
-            S_p = loas.projected_area(
+            S_p = loas.utils.projected_area(
                 self.sat_mesh,
                 sat_Q.R2V(loas.Vec(0,0,1))
             )

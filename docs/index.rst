@@ -7,12 +7,11 @@ Welcome to loas's documentation!
   :caption: Getting Started
 
 .. toctree::
-  api/output
-  api/satellite
-  api/quaternion
-  api/atmospheric_drag
-  api/torque
+  api/rad
+  api/models
   api/vector
+  api/quaternion
+  api/utils
   :caption: API Reference
 
 Indices and tables

@@ -8,6 +8,17 @@ import loas
 
 @memoization.cached
 def projected_area(mesh, normal):
+    """
+    Get the mesh's projected area along a certain vector
+    It was initially unseen in trimesh's code
+    It could be replaced by trimesh.path.polygons.projected(m, normal=[1,1,0]).area now
+    See : https://github.com/mikedh/trimesh/issues/898
+    
+    :param mesh: Mesh
+    :type mesh: trimesh.Trimesh
+    :param normal: Normal vector to the plane on which the mesh should be projected
+    :type normal: loas.Vec
+    """
     normal = normal/np.linalg.norm(normal)
     m = copy.deepcopy(mesh)
     dir_rot = normal + loas.Vec(1,0,0)

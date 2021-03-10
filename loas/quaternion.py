@@ -11,6 +11,7 @@ class Quat:
     def __init__(self,a,b,c,d):
         """
         Normalize the quaternion at initialization.
+        q = q0 + i*q1 * j*q2 + k*q3
 
         :param a: q_0
         :type a: float
@@ -46,6 +47,9 @@ class Quat:
     def __mul__(self,value):
         """
         Multiplication operation between quaternions
+
+        :param value: Another quaternion to multiply with
+        :type value: loas.Quat
         """
         return Quat(
             self.a*value.a - self.b*value.b - self.c*value.c - self.d*value.d,
@@ -91,6 +95,12 @@ class Quat:
             raise IndexError("Accessing a non-existing value of a 4 elements vector")
 
     def derivative(self, W):
+        """
+        Get the time derivative of the quaternion with the rotation vector
+
+        :param W: Rotation vector
+        :type W: loas.Vec
+        """
         expQ = np.array([
             [-self.b, -self.c, -self.d],
             [ self.a,  self.d, -self.c],
@@ -119,7 +129,7 @@ class Quat:
         Changes *vec* frame of reference from vehicle to reference
 
         :param vec: Input vector
-        :type vec: (3,1) numpy array
+        :type vec: loas.Vec
         """
         return self.tm() @ vec
 
@@ -128,7 +138,7 @@ class Quat:
         Changes *vec* frame of reference from reference to vehicle
 
         :param vec: Input vector
-        :type vec: (3,1) numpy array
+        :type vec: loas.Vec
         """
         return self.tminv() @ vec
 
