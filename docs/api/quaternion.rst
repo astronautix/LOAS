@@ -1,5 +1,5 @@
 Quaternion
 ==================
 
-.. automodule:: loas.Quat
+.. autoclass:: loas.Quat
   :members:

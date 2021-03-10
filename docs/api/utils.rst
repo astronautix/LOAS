@@ -1,4 +1,4 @@
 Utils
 ==================
 
-.. autofunction:: loas.utils.projected_area
+.. autoclass:: loas.utils.projected_area

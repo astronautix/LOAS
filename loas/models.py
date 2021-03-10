@@ -46,7 +46,7 @@ def maxwell(epsilon):
 
 def schamberg(theta_, theta_i):
     """
-    /!\ UNTESTED /!\
+    !! UNTESTED !!
     Schamberg reflexion model
     """
     def model(part_speed_i, normal, sat_temp, part_mass):
@@ -68,7 +68,7 @@ def schamberg(theta_, theta_i):
 
 def schamberg_compose(schambergs, coefs):
     """
-    /!\ UNTESTED /!\
+    !! UNTESTED !!
     Reflexion model made from the linear composition of several schamberg models
     :param schambergs: List of schamberg reflexion models
     :type schambergs: list

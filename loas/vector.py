@@ -3,12 +3,13 @@ class Vec(np.ndarray):
     """
     Represents a vector in LOAS
     Extends np.ndarray, so it can be used just as if it was a (n,1) np.array
-
-    :param *args: Elements of the vector
-    :type *args: floats
     """
 
     def __new__(cls,*args):
+        """
+        :param *args: Elements of the vector
+        :type *args: floats
+        """
         return np.asarray(np.array([[i] for i in args], dtype='float64')).view(cls)
 
     def line(self):
