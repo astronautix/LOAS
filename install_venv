@@ -6,7 +6,7 @@ rm -rf spatialindex-src-1.8.5.tar.gz
 
 cd $LOAS_PATH
 python3 -m venv venv
-cd venv/lib/python3.7/site-packages
+cd venv/lib/python3.*/site-packages
 ln -s $LOAS_PATH/loas
 
 cd $LOAS_PATH
